@@ -2,45 +2,77 @@
 # Author: José Manuel C. Noronha
 
 # Global Variable
-typeOperation="$1"
-pathDconf="$2"
-backupFile="$3"
+declare typeOperation="$1"
+declare pathDconf="$2"
+declare backupFile="$3"
+declare toolAppsSystem="toolAppsSystem.sh"
 
 function backup(){
+	if [ -z "$pathDconf" ]||[ -z "$backupFile" ]; then
+		echo "Invalid PATH or FILE-OUTPUT"
+		exit 1
+	fi
 	dconf dump "$pathDconf" > "$backupFile"
 }
 
 function restoreBackup(){
+	if [ -z "$pathDconf" ]||[ -z "$backupFile" ]; then
+		echo "Invalid PATH or FILE-OUTPUT"
+		exit 1
+	fi
 	dconf load "$pathDconf" < "$backupFile"
 }
 
 function reset(){
+	if [ -z "$pathDconf" ]; then
+		echo "Invalid PATH"
+		exit 1
+	fi
 	dconf reset -f "$pathDconf"
 }
 
 function installDependencies(){
-	sudo apt install dconf-tools -y
+	./$toolAppsSystem install -a --app dconf-tools
+}
+
+function helpMessage () {
+	echo "
+		$(basename "$0") [OPTIONS]... [PATH]... [FILE-OUTPUT]
+
+		OPTIONS:
+		-b, --backup	Backup Dconf PATH [NECESSARY FILE-OUTPUT]
+		-r, --restore	Restore Backup Dconf PATH from FILE
+		-R, --reset		Reset Dconf from PATH
+		
+		--dependencies	Install Dependencies
+
+		-h, --help		Help
+	"
 }
 
 case "$typeOperation" in
-	"1" )
+	-b|--backup)
 		backup
-		;;
-	"2" )
+		exit 0
+	;;
+	-r|--restore)
 		restoreBackup
-		;;
-	"3" )
+		exit 0
+	;;
+	-R|--reset)
 		reset
-		;;
-	"-i")
+		exit 0
+	;;
+	--dependencies)
 		installDependencies
-		;;
+		exit 0
+	;;
+	-h|--help)
+		helpMessage
+		exit 0
+	;;
 	* )
-		echo "All Deconf operation"
-		echo "$0 OPTIONS PATH FILE(OPTIONAL FOR 3)"
-		printf "\t 1 - dump\n"
-		printf "\t 2 - restore backup\n"
-		printf "\t 3 - reset\n"
-		printf "\t -i - Install Dependencies\n"
-		;;
+		echo "Ivalid Arguments"
+		exit 1
+	;;
 esac

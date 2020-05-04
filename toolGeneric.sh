@@ -3,8 +3,7 @@
 
 # Global variable
 declare operation="$1";
-shift # $1 processada, segue o proximo da fila em $1
-declare -a args=("$@")
+ # $1 processada, segue o proximo da fila em $1
 declare home="$(echo $HOME)"
 declare -a operatingSystemPermited=("Linux Mint")
 
@@ -13,7 +12,25 @@ function clearScreen(){
 	printf "\033c"
 }
 
-# Print empty lines
+: '
+Trim word by characters
+word = $1
+characters = $2
+'
+function trim() {
+    local word="$1"
+    local characters="$2"
+
+    if [ -z "$characters" ]; then
+        characters='." "$#%&!*'
+    fi
+    
+    echo "$word" | sed "s/[$characters]//g"
+}
+
+# Trim
+
+# Print empty lines. NumOfLines = $1
 function printEmptyLines(){
 	local numOfLines="$1"
 
@@ -22,46 +39,6 @@ function printEmptyLines(){
 			echo
 		done
 	fi
-}
-
-# Check if installed
-function checkIsInstaled(){
-    local nameApp="$1"
-    local typeApp="$2"
-
-    if [ "$typeApp" = "APT" ]; then # APT
-        apt list --installed | grep -ci "$nameApp" | awk '{if ($1 > "0") {print "1"} else {print "0"}}'
-    elif [ "$typeApp" = "SNAP" ]; then # SNAP
-    	snap list | awk '{if (NR!=1) {print $1}}' | grep -ci "$nameApp" | awk '{if ($1 > "0") {print "1"} else {print "0"}}' | awk '{$1=$1;print}'
-    elif [ "$typeApp" = "FLATPAK" ]; then # FLATPAK 
-    	flatpak list --all | awk '{if (NR!=1) {print $1}}' | grep -ci "$nameApp" | awk '{if ($1 > "0") {print "1"} else {print "0"}}'
-    else
-    	echo "0"
-    fi
-}
-
-# Check if ppa/remote exist or not
-function checkIsAddedPPA(){
-    local ppa="$1"
-    local typePPA="$2"
-    local -i existPPA
-    
-    if [ ! -z "$ppa" ]; then
-    	if [ "$typePPA" = "APT" ]; then # APT
-    		 if [ ! -z "$(echo "$ppa" | cut -d ":" -f2)" ]; then
-	            ppa="$(echo "$ppa" | cut -d ":" -f2)"
-	        fi
-
-	        existPPA=$(grep "^deb .*$ppa" /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -c .)
-	        if [ $existPPA -gt 0 ]; then
-	            echo "1"
-	        else
-	        	echo "0"
-	        fi
-    	elif [ "$typePPA" = "FLATPAK" ]; then # FLATPAK
-    		flatpak remote-list | awk '{if (NR!=0) {print $1}}' | grep -ci "$ppa" | awk '{if ($1 > "0") {print "1"} else {print "0"}}'
-    	fi
-    fi
 }
 
 # Check your Graphic vendor
@@ -260,203 +237,6 @@ function chownCmd(){
 	eval "sudo chown -R $user:$group $pathFileOrDir"
 }
 
-# Install APT APP
-function installAPT(){
-    local -a apps=($1)
-    local -a ppa=($2)
-    local -i noRecomends="$3"
-
-    # Set ppa
-    for PPA in "${ppa[@]}"; do
-        if [ ! -z "$PPA" ]; then
-            if [ $(checkIsAddedPPA "$PPA" "APT") -eq 0 ]; then
-                echo "Set PPA: $PPA..."
-                sudo add-apt-repository "$PPA" -y
-                printEmptyLines 2
-                sudo apt update
-            else
-                echo "This $PPA Already Exist..."
-            fi
-        fi
-    done
-
-    # Install
-    for APP in "${apps[@]}"; do
-        if [ $(checkIsInstaled "$APP" "APT") -eq 0 ]; then
-            echo "Install: $APP..."
-
-            if [ ! -z "$noRecomends" ]||[ $noRecomends -eq 0 ]; then
-                sudo apt install "$APP" -y
-            else
-                sudo apt install --no-install-recommends "$APP" -y
-            fi
-            printEmptyLines 2
-        else
-            echo "$APP Already Installed..."
-        fi
-    done
-}
-
-# Uninstall APT APP
-function uninstallAPT(){
-    local -a apps=($1)
-    local -a ppa=($2)
-
-    # Del ppa
-    for PPA in "${ppa[@]}"; do
-        if [ ! -z "$PPA" ]; then
-            if [ $(checkIsAddedPPA "$PPA" "APT") -eq 1 ]; then
-                echo "Remove PPA: $PPA..."
-                sudo add-apt-repository -r "$PPA" -y
-                printEmptyLines 2
-                sudo apt update
-            fi
-        fi
-    done
-
-    # Uninstall
-    for APP in "${apps[@]}"; do
-        echo "Uninstall: $APP..."
-        if [ $(checkIsInstaled "$APP" "APT") -eq 1 ]; then
-            sudo apt purge --auto-remove "$APP" -y
-
-            echo "Clear $APP..."
-            sudo apt clean "$APP"
-            printEmptyLines 2
-        fi
-    done
-}
-
-# Install SNAP APP
-function installSNAP(){
-    local -a apps=($1)
-    local -a types=($2)
-    local type
-    local -i typesIndex=0
-
-    # Install
-    for APP in "${apps[@]}"; do
-        if [ $(checkIsInstaled "$APP" "SNAP") -eq 0 ]; then
-            echo "Install: $APP..."
-
-            if [ ! -z ${types[$types]} ]&&[ "${types[$types]}" != "" ]; then
-                type=${types[$types]}
-            else
-                type="classic"
-            fi
-            sudo snap install "$APP" --$type
-            printEmptyLines 2
-        else
-            echo "$APP Already Installed..."
-        fi
-        typesIndex=$typesIndex+1
-    done
-}
-
-# Uninstall SNAP APP
-function uninstallSNAP(){
-    local -a apps=($1)
-
-    # Uninstall
-    for APP in "${apps[@]}"; do
-        echo "Uninstall $APP..."
-        if [ $(checkIsInstaled "$APP" "SNAP") -eq 1 ]; then
-        	echo "Remove Remote: $PPA..."
-            sudo snap remove "$APP"
-            printEmptyLines 2
-        fi
-    done
-}
-
-# Install FLATPAK APP
-function installFLATPAK(){
-    local -a apps=($1)
-    local vendorApp=($2)
-    local -a ppa=($3)
-    local -i vendorIndex=0
-    local -i isPermitedSO=$(checkOperatingSystemPermited)
-
-    # Set ppa
-    for PPA in "${ppa[@]}"; do
-        if [ ! -z "$PPA" ]; then
-            if [ $(checkIsAddedPPA "${vendorApp[$vendorIndex]}" "FLATPAK") -eq 0 ]; then
-            	PPA="${vendorApp[$vendorIndex]} $PPA"
-                echo "Set Remote: $PPA..."
-                
-                if [ $isPermitedSO -eq 1 ]; then
-                	flatpak remote-add --if-not-exists $PPA
-                    printEmptyLines 2
-                    flatpak update
-                else
-                	torsocks flatpak remote-add --if-not-exists $PPA
-                    printEmptyLines 2
-                    torsocks flatpak update
-                fi
-            else
-                echo "This $PPA Already Exist..."
-            fi
-        fi
-        vendorIndex=$vendorIndex+1
-    done
-
-    # Install
-    vendorIndex=0
-    for APP in "${apps[@]}"; do
-        if [ $(checkIsInstaled "$APP" "FLATPAK") -eq 0 ]; then
-        	APP="${vendorApp[$vendorIndex]} $APP"
-            echo "Install: $APP..."
-            if [ $isPermitedSO -eq 1 ]; then
-            	flatpak install $APP
-            else
-            	torsocks flatpak install $APP
-            fi
-            printEmptyLines 2
-        else
-            echo "$APP Already Installed..."
-        fi
-        vendorIndex=$vendorIndex+1
-    done
-}
-
-# Uninstall FLATPAK APP
-function uninstallFLATPAK(){
-    local -a apps=($1)
-    local -a ppa=($2)
-    local -i isPermitedSO=$(checkOperatingSystemPermited)
-
-    # Del ppa
-    for PPA in "${ppa[@]}"; do
-        if [ ! -z "$PPA" ]; then
-            if [ $(checkIsAddedPPA "$PPA" "FLATPAK") -eq 1 ]; then
-                echo "Remove Remote: $PPA..."
-
-                if [ $isPermitedSO -eq 1 ]; then
-                	flatpak remote-delete $PPA
-                    printEmptyLines 2
-                    flatpak update
-                else
-                	torsocks flatpak remote-delete $PPA
-                    printEmptyLines 2
-                    torsocks flatpak update
-                fi
-            fi
-        fi
-    done
-
-    # Uninstall
-    for APP in "${apps[@]}"; do
-        if [ $(checkIsInstaled "$APP" "FLATPAK") -eq 1 ]; then
-            echo "Uninstall $APP..."
-            if [ $isPermitedSO -eq 1 ]; then
-            	flatpak uninstall $APP
-            else
-            	torsocks flatpak uninstall $APP
-            fi
-            printEmptyLines 2
-        fi
-    done
-}
-
 # Install DEB Files
 function installDebFiles(){
 	local -a apps=($1)
@@ -613,7 +393,7 @@ function isServiceActive(){
 
 # Install All Dependencies
 function installDependencies(){
-	local appDependence="torsocks language-selector-common snapd snapd-xdg-open flatpak xdg-desktop-portal-gtk gnome-software-plugin-flatpak gdebi alien wget"
+	local appDependence="language-selector-common wget"
 	local apps=("$appDependence")
 
     printf "\nInstall Dependencies for MS_functions...\n"
@@ -636,224 +416,231 @@ function startAppsDependencies(){
 }
 
 # Main
-function main(){
-    case "$operation" in
-    	"-iD")
-			installDependencies
-    		startAppsDependencies
-    		;;
-    	"-existPPA")
-			checkIsAddedPPA "${args[@]}"
-			;;
-        "-isId")
-            checkIsInstaled "${args[@]}"
-            ;;
-        "-existFile")
-            existFile "${args[@]}"
-            ;;
-        "-existDir")
-            existDir "${args[@]}"
-            ;;
-        "-kPID")
-			echo "Kill PID if exist..."
-            killPID "${args[@]}"
-            ;;
-        "-delFile")
-			echo "Delete File if exist..."
-            removeFile "${args[@]}"
-            ;;
-        "-delDir")
-			echo "Delete Directory if exist..."
-            removeDir "${args[@]}"
-            ;;
-        "-dBFile")
-			echo "Create Boot Desktop files..."
-            createBootDesktop "${args[@]}"
-            ;;
-        "-dNFile")
-			echo "Create Normal Desktop files..."
-            createNormalDesktop "${args[@]}"
-            ;;
-        "-eCmd")
-            execCommandGetOutput "${args[@]}"
-            ;;
-        "-chown")
-			echo "Execute command chown on file or directory..."
-			chownCmd "${args[@]}"
-			;;
-        "-iAPT")
-            installAPT "${args[@]}"
-            ;;
-        "-uAPT")
-            uninstallAPT "${args[@]}"
-            ;;
-        "-iSNAP")
-            installSNAP "${args[@]}"
-            ;;
-        "-uSNAP")
-            uninstallSNAP "${args[@]}"
-            ;;
-        "-iFLATPAK")
-            installFLATPAK "${args[@]}"
-            ;;
-        "-uFLATPAK")
-            uninstallFLATPAK "${args[@]}"
-            ;;
-        "-iGExt")
-            installGnomeShellExtension "${args[@]}"
-            ;;
-        "-iLMApplets")
-            installLinuxMintApplets "${args[@]}"
-            ;;
-        "-isOS")
-            getOperatingSytem "${args[@]}"
-            ;;
-        "-iDeb")
-            installDebFiles "${args[@]}"
-            ;;
-        "-iRpm")
-            installRpmFiles "${args[@]}"
-            ;;
-        "-dFLink")
-            downloadFromLink "${args[@]}"
-            ;;
-        "-gArgs")
-            getAllArgsAndReturn "${args[@]}"
-            ;;
-        "-existGDriver")
-            checkGraphicVendor "${args[@]}"
-            ;;
-        "-cls")
-            clearScreen
-            ;;
-        "-cut")
-            cutStringBySeparator "${args[@]}"
-            ;;
-        "-isSA")
-			isServiceActive "${args[@]}"
-			;;
-        *)
-            echo "$0 OPERATION ARGS"
-            printf "\n\nOPERATION:"
+case "$operation" in
+    -t|--trim)
+        shift
+        trim "$@"
+        exit 0
+    ;;
+    -e|--emptyLines)
+        shift
+        printEmptyLines "$@"
+        exit 0
+    ;;
+    "-iD")
+        installDependencies
+        startAppsDependencies
+        ;;
+    "-existPPA")
+        checkIsAddedPPA "${args[@]}"
+        ;;
+    "-isId")
+        checkIsInstaled "${args[@]}"
+        ;;
+    "-existFile")
+        existFile "${args[@]}"
+        ;;
+    "-existDir")
+        existDir "${args[@]}"
+        ;;
+    "-kPID")
+        echo "Kill PID if exist..."
+        killPID "${args[@]}"
+        ;;
+    "-delFile")
+        echo "Delete File if exist..."
+        removeFile "${args[@]}"
+        ;;
+    "-delDir")
+        echo "Delete Directory if exist..."
+        removeDir "${args[@]}"
+        ;;
+    "-dBFile")
+        echo "Create Boot Desktop files..."
+        createBootDesktop "${args[@]}"
+        ;;
+    "-dNFile")
+        echo "Create Normal Desktop files..."
+        createNormalDesktop "${args[@]}"
+        ;;
+    "-eCmd")
+        execCommandGetOutput "${args[@]}"
+        ;;
+    "-chown")
+        echo "Execute command chown on file or directory..."
+        chownCmd "${args[@]}"
+        ;;
+    "-iAPT")
+        installAPT "${args[@]}"
+        ;;
+    "-uAPT")
+        uninstallAPT "${args[@]}"
+        ;;
+    "-iSNAP")
+        installSNAP "${args[@]}"
+        ;;
+    "-uSNAP")
+        uninstallSNAP "${args[@]}"
+        ;;
+    "-iFLATPAK")
+        installFLATPAK "${args[@]}"
+        ;;
+    "-uFLATPAK")
+        uninstallFLATPAK "${args[@]}"
+        ;;
+    "-iGExt")
+        installGnomeShellExtension "${args[@]}"
+        ;;
+    "-iLMApplets")
+        installLinuxMintApplets "${args[@]}"
+        ;;
+    "-isOS")
+        getOperatingSytem "${args[@]}"
+        ;;
+    "-iDeb")
+        installDebFiles "${args[@]}"
+        ;;
+    "-iRpm")
+        installRpmFiles "${args[@]}"
+        ;;
+    "-dFLink")
+        downloadFromLink "${args[@]}"
+        ;;
+    "-gArgs")
+        getAllArgsAndReturn "${args[@]}"
+        ;;
+    "-existGDriver")
+        checkGraphicVendor "${args[@]}"
+        ;;
+    "-cls")
+        clearScreen
+        ;;
+    "-cut")
+        cutStringBySeparator "${args[@]}"
+        ;;
+    "-isSA")
+        isServiceActive "${args[@]}"
+        ;;
+    *)
+        echo "$0 OPERATION ARGS"
+        printf "\n\nOPERATION:"
 
-            # iD
-            printf "\n\t-iD: Install All Dependencies\n"
-            printf "\t\tARGS: None"
+        # iD
+        printf "\n\t-iD: Install All Dependencies\n"
+        printf "\t\tARGS: None"
 
-            # existPPA
-            printf "\n\t-existPPA: Check if ppa/remote exist\n"
-            printf "\t\tARGS: PPA (APT|FLATPAK)"
+        # existPPA
+        printf "\n\t-existPPA: Check if ppa/remote exist\n"
+        printf "\t\tARGS: PPA (APT|FLATPAK)"
 
-            # isId
-            printf "\n\t-isId: Check if app is instaled\n"
-            printf "\t\tARGS: NameApp (APT|SNAP|FLATPAK)"
+        # isId
+        printf "\n\t-isId: Check if app is instaled\n"
+        printf "\t\tARGS: NameApp (APT|SNAP|FLATPAK)"
 
-            # existFile
-            printf "\n\t-existFile: Check if file exist\n"
-            printf "\t\tARGS: NameFile"
+        # existFile
+        printf "\n\t-existFile: Check if file exist\n"
+        printf "\t\tARGS: NameFile"
 
-            # existDir
-            printf "\n\t-existDir: Check if directory exist\n"
-            printf "\t\tARGS: NameDirectory"
+        # existDir
+        printf "\n\t-existDir: Check if directory exist\n"
+        printf "\t\tARGS: NameDirectory"
 
-            # kPID
-            printf "\n\t-kPID: Kill PID if exist\n"
-            printf "\t\tARGS: PID"
+        # kPID
+        printf "\n\t-kPID: Kill PID if exist\n"
+        printf "\t\tARGS: PID"
 
-            # delFile
-            printf "\n\t-delFile: Delete file if exist\n"
-            printf "\t\tARGS: Full_Path_File"
+        # delFile
+        printf "\n\t-delFile: Delete file if exist\n"
+        printf "\t\tARGS: Full_Path_File"
 
-            # delDir
-            printf "\n\t-delDir: Delete directory if exist\n"
-            printf "\t\tARGS: Full_Path_Directory"
+        # delDir
+        printf "\n\t-delDir: Delete directory if exist\n"
+        printf "\t\tARGS: Full_Path_Directory"
 
-            # dBFile
-            printf "\n\t-dBFile: Create Boot Desktop files\n"
-            printf "\t\tARGS: Name_App Executable useTerminal(1|0) Icon ExtraLines"
+        # dBFile
+        printf "\n\t-dBFile: Create Boot Desktop files\n"
+        printf "\t\tARGS: Name_App Executable useTerminal(1|0) Icon ExtraLines"
 
-            # dNFile
-            printf "\n\t-dNFile: Create Normal Desktop files\n"
-            printf "\t\tARGS: Name_App Executable useTerminal(1|0) Icon ExtraLines"
+        # dNFile
+        printf "\n\t-dNFile: Create Normal Desktop files\n"
+        printf "\t\tARGS: Name_App Executable useTerminal(1|0) Icon ExtraLines"
 
-            # eCmd
-            printf "\n\t-eCmd: Execute command and return output\n"
-            printf "\t\tARGS: Command"
+        # eCmd
+        printf "\n\t-eCmd: Execute command and return output\n"
+        printf "\t\tARGS: Command"
 
-            # chown
-            printf "\n\t-chown: Execute command chown on file or directory\n"
-            printf "\t\tARGS: User(Can be empty string) Group(Can be empty string) Full_Path"
+        # chown
+        printf "\n\t-chown: Execute command chown on file or directory\n"
+        printf "\t\tARGS: User(Can be empty string) Group(Can be empty string) Full_Path"
 
-            # iAPT
-            printf "\n\t-iAPT: Install APT APP (0/null = install recommends | 1 = no install recommends)\n"
-            printf "\t\tARGS: \"app1 ...\" \"ppa1 ...\" (0|1)"
+        # iAPT
+        printf "\n\t-iAPT: Install APT APP (0/null = install recommends | 1 = no install recommends)\n"
+        printf "\t\tARGS: \"app1 ...\" \"ppa1 ...\" (0|1)"
 
-            # uAPT
-            printf "\n\t-uAPT: Uninstall APT APP\n"
-            printf "\t\tARGS: \"app1 ...\" \"ppa1 ...\""
+        # uAPT
+        printf "\n\t-uAPT: Uninstall APT APP\n"
+        printf "\t\tARGS: \"app1 ...\" \"ppa1 ...\""
 
-            # iSNAP
-            printf "\n\t-iSNAP: Install SNAP APP\n"
-            printf "\t\tARGS: \"app1 ...\" \"type1 ...\"(classic|stable|...)"
+        # iSNAP
+        printf "\n\t-iSNAP: Install SNAP APP\n"
+        printf "\t\tARGS: \"app1 ...\" \"type1 ...\"(classic|stable|...)"
 
-            # uSNAP
-            printf "\n\t-uSNAP: Uninstall SNAP APP\n"
-            printf "\t\tARGS: \"app1 ...\""
+        # uSNAP
+        printf "\n\t-uSNAP: Uninstall SNAP APP\n"
+        printf "\t\tARGS: \"app1 ...\""
 
-            # iFLATPAK
-            printf "\n\t-iFLATPAK: Install FLATPAK APP\n"
-            printf "\t\tARGS: \"app1 ...\" \"vendor1 ...\" \"remote1 ...\""
+        # iFLATPAK
+        printf "\n\t-iFLATPAK: Install FLATPAK APP\n"
+        printf "\t\tARGS: \"app1 ...\" \"vendor1 ...\" \"remote1 ...\""
 
-            # uFLATPAK
-            printf "\n\t-uFLATPAK: Uninstall FLATPAK APP\n"
-            printf "\t\tARGS: \"app1 ...\" \"remote1 ...\""
+        # uFLATPAK
+        printf "\n\t-uFLATPAK: Uninstall FLATPAK APP\n"
+        printf "\t\tARGS: \"app1 ...\" \"remote1 ...\""
 
-            # iGExt
-            printf "\n\t-iGExt: Install Gnome Extension\n"
-            printf "\t\tARGS: Full_Path_ZIP_FILE"
+        # iGExt
+        printf "\n\t-iGExt: Install Gnome Extension\n"
+        printf "\t\tARGS: Full_Path_ZIP_FILE"
 
-            # iLMApplets
-            printf "\n\t-iLMApplets: Install Linux Mint Applets\n"
-            printf "\t\tARGS: Full_Path_ZIP_FILE"
+        # iLMApplets
+        printf "\n\t-iLMApplets: Install Linux Mint Applets\n"
+        printf "\t\tARGS: Full_Path_ZIP_FILE"
 
-            # isOS
-            printf "\n\t-isOS: Check if Operating System Installed\n"
-            printf "\t\tARGS: \"NameOperatingSystem\""
+        # isOS
+        printf "\n\t-isOS: Check if Operating System Installed\n"
+        printf "\t\tARGS: \"NameOperatingSystem\""
 
-            # iDeb
-            printf "\n\t-iDeb: Install DEB Files\n"
-            printf "\t\tARGS: \"app1.deb ...\""
+        # iDeb
+        printf "\n\t-iDeb: Install DEB Files\n"
+        printf "\t\tARGS: \"app1.deb ...\""
 
-            # iRpm
-            printf "\n\t-iRpm: Install RPM Files\n"
-            printf "\t\tARGS: \"app1.rpm ...\""
+        # iRpm
+        printf "\n\t-iRpm: Install RPM Files\n"
+        printf "\t\tARGS: \"app1.rpm ...\""
 
-            # dFLink
-            printf "\n\t-dFLink: Dowload any data from link\n"
-            printf "\t\tARGS: Link \"DestPath\"(Default: /tmp) \"NameForFile\"(OPTIONAL)"
+        # dFLink
+        printf "\n\t-dFLink: Dowload any data from link\n"
+        printf "\t\tARGS: Link \"DestPath\"(Default: /tmp) \"NameForFile\"(OPTIONAL)"
 
-            # gArgs
-            printf "\n\t-gArgs: Return All Args received on string\n"
-            printf "\t\tARGS: ALL POSSIBLE ARGS"
+        # gArgs
+        printf "\n\t-gArgs: Return All Args received on string\n"
+        printf "\t\tARGS: ALL POSSIBLE ARGS"
 
-            # existGDriver
-            printf "\n\t-existGDriver: Check Graphic Vendors\n"
-            printf "\t\tARGS: NameVendor"
+        # existGDriver
+        printf "\n\t-existGDriver: Check Graphic Vendors\n"
+        printf "\t\tARGS: NameVendor"
 
-            # cls
-            printf "\n\t-cls: Clear Screen\n"
-            printf "\t\tARGS: None"
+        # cls
+        printf "\n\t-cls: Clear Screen\n"
+        printf "\t\tARGS: None"
 
-            # cut
-            printf "\n\t-cut: Return word by separator\n"
-            printf "\t\tARGS: \"string\" \"separator\" l|r(left|rigth)"
+        # cut
+        printf "\n\t-cut: Return word by separator\n"
+        printf "\t\tARGS: \"string\" \"separator\" l|r(left|rigth)"
 
-            # isSA
-            printf "\n\t-isSA: Check if service is active\n"
-            printf "\t\tARGS: name_of_service"
+        # isSA
+        printf "\n\t-isSA: Check if service is active\n"
+        printf "\t\tARGS: name_of_service"
 
-            printf "\n"
-            ;;
-    esac
-}
-main
+        printf "\n"
+        ;;
+esac
