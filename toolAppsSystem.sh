@@ -131,69 +131,7 @@ function ppaInstaled(){
 : '
 ####################### APT AREA #######################
 '
-# Install APT APP
-function installAPT(){
-    setAppsAndPPAs "$@"
 
-    # Set ppa
-    for PPA in "${ppas[@]}"; do
-        if [ ! -z "$PPA" ]; then
-            if [ $(ppaInstaled "-a" "$PPA" | grep -c .) -eq 0 ]; then
-                echo "Set PPA: $PPA..."
-                sudo add-apt-repository "$PPA" -y
-                ./$toolGeneric -e "$EMPTY_LINES"
-            else
-                echo "This $PPA Already Exist..."
-                ./$toolGeneric -e "$EMPTY_LINES"
-            fi
-        fi
-    done
-
-    # Install
-    for APP in "${apps[@]}"; do
-        if [ $(appInstaled "-a" "$APP" | grep -c .) -eq 0 ]; then
-            echo "Install: $APP..."
-            if [ ! -z "$noRecomends" ]||[ $noRecomends -eq 0 ]; then
-                sudo apt install "$APP" -y
-            else
-                sudo apt install --no-install-recommends "$APP" -y
-            fi
-            ./$toolGeneric -e "$EMPTY_LINES"
-        else
-            echo "$APP Already Installed..."
-            ./$toolGeneric -e "$EMPTY_LINES"
-        fi
-    done
-}
-
-# Uninstall APT APP
-function uninstallAPT(){
-    setAppsAndPPAs "$@"
-
-    # Uninstall
-    for APP in "${apps[@]}"; do
-        echo "Uninstall: $APP..."
-        if [ $(appInstaled "-a" "$APP" | grep -c .) -gt 0 ]; then
-            sudo apt purge --auto-remove "$APP" -y
-
-            echo "Clear $APP..."
-            sudo apt clean "$APP"
-            ./$toolGeneric -e "$EMPTY_LINES"
-        fi
-    done
-
-    # Del ppa
-    for PPA in "${ppas[@]}"; do
-        if [ ! -z "$PPA" ]; then
-            if [ $(ppaInstaled "-a" "$PPA" | grep -c .) -gt 0 ]; then
-                echo "Remove PPA: $PPA..."
-                sudo add-apt-repository -r "$PPA" -y
-                sudo apt update
-                ./$toolGeneric -e "$EMPTY_LINES"
-            fi
-        fi
-    done
-}
 
 : '
 ####################### SNAP AREA #######################
