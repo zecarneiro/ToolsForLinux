@@ -10,11 +10,11 @@ function printError() {
     local code="$2"
 
     if [ -n "$msg" ]; then
-        echo -e "\033[1;31mERROR $functionName: $msg"
+        echo -e "${RED}ERROR $functionName: $msg${NOCOLOR}"
     fi
 
     if [ -n "$code" ]; then
-        echo -e "\033[1;31mERROR CODE $functionName: $code"
+        echo -e "${RED}ERROR CODE $functionName: $code${NOCOLOR}"
     fi
     exitError $code
 }
@@ -22,14 +22,14 @@ function printError() {
 function printSuccess() {
     local msg="$1"
     if [ -n "$msg" ]; then
-        echo -e "\033[1;32mSUCCESS: $msg"
+        echo -e "${GREEN}SUCCESS: $msg${NOCOLOR}"
     fi
 }
 
 function printInformation() {
     local msg="$1"
     if [ -n "$msg" ]; then
-        echo -e "\033[1;33mINFO: $msg"
+        echo -e "${YELLOW}INFO: $msg${NOCOLOR}"
     fi
 }
 

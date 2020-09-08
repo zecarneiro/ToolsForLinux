@@ -2,7 +2,7 @@
 # Author: José M. C. Noronha
 
 : '
-####################### APT AREA #######################
+####################### APT/DEB AREA #######################
 '
 # Check if ppa/remote exist or not
 function ppaInstaled(){
@@ -34,13 +34,12 @@ function ppaInstaled(){
 # Install/Uninstall PPA
 function ppaAPT() {
     local operation="$1"; shift
-    local ppas="$@"
-    local command
+    local cmdRun
     local runUpdate=0
 
     case "$operation" in
-        -i) command="sudo add-apt-repository ppa:%PPA% -y" ;;
-        -u) command="sudo add-apt-repository -r ppa:%PPA% -y" ;;
+        i) cmdRun="sudo add-apt-repository ppa:%PPA% -y" ;;
+        u) cmdRun="sudo add-apt-repository -r ppa:%PPA% -y" ;;
         *) printError ${FUNCNAME[0]} "Invalid arguments" 1 ;;
     esac
 
@@ -49,20 +48,20 @@ function ppaAPT() {
             ppa="$(echo "$ppa" | cut -d ":" -f2)"
         fi
         local existPPA=$(grep "^deb .*$ppa" /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -c .)
-        command="${command/\%PPA\%/$ppa}"
+        cmdRun="${cmdRun/\%PPA\%/$ppa}"
 
         case "$operation" in
-            -i)
+            i)
                 (( $existPPA == 0 )) && {
-                    eval "$command"
+                    eval "$cmdRun"
                     (( $? > 0 )) && {
                         printError ${FUNCNAME[0]} "Error on install $ppa" $?
                     } || printSuccess "$ppa installed"; runUpdate=1 
                 } || printInformation "PPA $ppa already exist!!!"
             ;;
-            -u)
+            u)
                 (( $existPPA > 0 )) && {
-                    eval "$command"
+                    eval "$cmdRun"
                     (( $? > 0 )) && {
                         printError ${FUNCNAME[0]} "Error on uninstall $ppa" $?
                     } || printSuccess "$ppa uninstalled"; runUpdate=1 
@@ -70,7 +69,6 @@ function ppaAPT() {
             ;;
         esac
     done
-    echo "oi"
 
     # Update Lib APT
     if (( $runUpdate > 0 )); then sudo apt update; fi
@@ -78,73 +76,38 @@ function ppaAPT() {
 
 function appAPT() {
     local operation="$1"; shift
-    local noRecomends="$1"; shift
-    local apps="$@"
-    local command
-}
+    local cmdRun
 
+    case "$operation" in
+        i-no-recommends) cmdRun="sudo apt install --no-install-recommends %APP% -y" ;;
+        i) cmdRun="sudo apt install %APP% -y" ;;
+        u) cmdRun="sudo apt purge --auto-remove %APP% -y && sudo apt clean %APP%" ;;
+        *) printError ${FUNCNAME[0]} "Invalid arguments" 1 ;;
+    esac
 
-# Install APT APP
-function installAPT(){
-    setAppsAndPPAs "$@"
+    for app in "$@"; do
+        local isInstalled=$(apt list --installed 2>/dev/null | grep -i "^$app" | grep -c .)
+        cmdRun="${cmdRun/\%APP\%/$app}"
+        echo $cmdRun
 
-    # Set ppa
-    for PPA in "${ppas[@]}"; do
-        if [ ! -z "$PPA" ]; then
-            if [ $(ppaInstaled "-a" "$PPA" | grep -c .) -eq 0 ]; then
-                echo "Set PPA: $PPA..."
-                sudo add-apt-repository "$PPA" -y
-                ./$toolGeneric -e "$EMPTY_LINES"
-            else
-                echo "This $PPA Already Exist..."
-                ./$toolGeneric -e "$EMPTY_LINES"
-            fi
-        fi
-    done
-
-    # Install
-    for APP in "${apps[@]}"; do
-        if [ $(appInstaled "-a" "$APP" | grep -c .) -eq 0 ]; then
-            echo "Install: $APP..."
-            if [ ! -z "$noRecomends" ]||[ $noRecomends -eq 0 ]; then
-                sudo apt install "$APP" -y
-            else
-                sudo apt install --no-install-recommends "$APP" -y
-            fi
-            ./$toolGeneric -e "$EMPTY_LINES"
-        else
-            echo "$APP Already Installed..."
-            ./$toolGeneric -e "$EMPTY_LINES"
-        fi
-    done
-}
-
-# Uninstall APT APP
-function uninstallAPT(){
-    setAppsAndPPAs "$@"
-
-    # Uninstall
-    for APP in "${apps[@]}"; do
-        echo "Uninstall: $APP..."
-        if [ $(appInstaled "-a" "$APP" | grep -c .) -gt 0 ]; then
-            sudo apt purge --auto-remove "$APP" -y
-
-            echo "Clear $APP..."
-            sudo apt clean "$APP"
-            ./$toolGeneric -e "$EMPTY_LINES"
-        fi
-    done
-
-    # Del ppa
-    for PPA in "${ppas[@]}"; do
-        if [ ! -z "$PPA" ]; then
-            if [ $(ppaInstaled "-a" "$PPA" | grep -c .) -gt 0 ]; then
-                echo "Remove PPA: $PPA..."
-                sudo add-apt-repository -r "$PPA" -y
-                sudo apt update
-                ./$toolGeneric -e "$EMPTY_LINES"
-            fi
-        fi
+        case "$operation" in
+            i|i-no-recommends)
+                (( $isInstalled == 0 )) && {
+                    eval "$cmdRun"
+                    (( $? > 0 )) && {
+                        printError ${FUNCNAME[0]} "Error on install $app" $?
+                    } || printSuccess "$app installed"; runUpdate=1 
+                } || printInformation "APP $app already installed!!!"
+            ;;
+            u)
+                (( $isInstalled > 0 )) && {
+                    eval "$cmdRun"
+                    (( $? > 0 )) && {
+                        printError ${FUNCNAME[0]} "Error on uninstall $app" $?
+                    } || printSuccess "$app uninstalled"
+                } || printInformation "APP $ppa not installed!!!"
+            ;;
+        esac
     done
 }
 
@@ -304,5 +267,6 @@ function createNormalDesktop(){
 
 declare _OPERATIONS_APT_="$1"; shift
 case "$_OPERATIONS_APT_" in
-    ppa) ppaAPT "$@" ;;
+    apt-ppa) ppaAPT "$@" ;;
+    apt-app) appAPT "$@" ;;
 esac

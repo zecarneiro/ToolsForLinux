@@ -6,6 +6,7 @@ declare _SRC_="$PWD/src"
 
 # Import all necessary scripts
 . "$_LIB_/functions.sh"
+. "$_LIB_/colorForString.sh"
 
 declare _OPERATIONS_="$1"; shift
 case "$_OPERATIONS_" in
