@@ -3,6 +3,7 @@
 
 declare _LIB_="$PWD/lib"
 declare _SRC_="$PWD/src"
+declare EXIT_ERROR=1
 
 # Import all necessary scripts
 . "$_LIB_/functions.sh"

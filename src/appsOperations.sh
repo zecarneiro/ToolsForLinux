@@ -1,21 +1,43 @@
 #!/bin/bash
 # Author: José M. C. Noronha
 
-: '
-####################### APT/DEB AREA #######################
-'
+# Check if installed
+function appInstaled(){
+    local typeApp="$1"
+    local nameApp=$(./$toolGeneric -t "$2")
+
+    case "$typeApp" in
+        -a|--apt)
+            if [ -z "$nameApp" ]; then
+                apt list --installed 2>/dev/null
+                exit 0
+            fi
+            apt list --installed 2>/dev/null | grep -i "^$nameApp"
+        ;;
+        -s|--snap)
+            if [ -z "$nameApp" ]; then
+                snap list | awk '{if (NR!=1) {print $1}}'
+                exit 0
+            fi
+            snap list | awk '{if (NR!=1) {print $1}}' | grep -i "^$nameApp"
+        ;;
+        -f|--flatpak)
+            if [ -z "$nameApp" ]; then
+                flatpak list --all | awk '{if (NR!=1) {print $1}}'
+                exit 0
+            fi
+            flatpak list --all | awk '{if (NR!=1) {print $1}}' | grep -i "^$nameApp"
+        ;;
+        *) printInvalidArg ;;
+    esac
+}
+
 # Check if ppa/remote exist or not
-function ppaInstaled(){
+function ppaInstaled() {
     local typePPA="$1"
     local ppa="$2"
     
     case "$typePPA" in
-        -a|--apt)
-            if [ ! -z "$(echo "$ppa" | cut -d ":" -f2)" ]; then
-                ppa="$(echo "$ppa" | cut -d ":" -f2)"
-            fi
-            grep "^deb .*$ppa" /etc/apt/sources.list /etc/apt/sources.list.d/* | grep .
-        ;;
         -s|--snap)
             echo "Not Exist PPA for SNAP"
             exit 1
@@ -31,6 +53,19 @@ function ppaInstaled(){
     esac
 }
 
+: '
+####################### APT/DEB/RPM AREA #######################
+'
+# Get List of App APT Installed
+function installedAPT() {
+    [[ -z "$1" ]] && {
+        apt list --installed 2>/dev/null
+    } || {
+        apt -qq list "$1" --installed 2>/dev/null
+    }
+    return $?
+}
+
 # Install/Uninstall PPA
 function ppaAPT() {
     local operation="$1"; shift
@@ -40,7 +75,7 @@ function ppaAPT() {
     case "$operation" in
         i) cmdRun="sudo add-apt-repository ppa:%PPA% -y" ;;
         u) cmdRun="sudo add-apt-repository -r ppa:%PPA% -y" ;;
-        *) printError ${FUNCNAME[0]} "Invalid arguments" 1 ;;
+        *) printMessages "Invalid arguments" 4 $EXIT_ERROR "${FUNCNAME[0]}"; exitError $code ;;
     esac
 
     for ppa in "$@"; do
@@ -49,23 +84,24 @@ function ppaAPT() {
         fi
         local existPPA=$(grep "^deb .*$ppa" /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -c .)
         cmdRun="${cmdRun/\%PPA\%/$ppa}"
+        printMessages "$cmdRun"
 
         case "$operation" in
             i)
                 (( $existPPA == 0 )) && {
                     eval "$cmdRun"
                     (( $? > 0 )) && {
-                        printError ${FUNCNAME[0]} "Error on install $ppa" $?
-                    } || printSuccess "$ppa installed"; runUpdate=1 
-                } || printInformation "PPA $ppa already exist!!!"
+                        printMessages "Error on install $ppa" 4 $? "${FUNCNAME[0]}"; exitError $?
+                    } || printMessages "$ppa installed" 1; runUpdate=1 
+                } || printMessages "PPA $ppa already exist!!!" 2
             ;;
             u)
                 (( $existPPA > 0 )) && {
                     eval "$cmdRun"
                     (( $? > 0 )) && {
-                        printError ${FUNCNAME[0]} "Error on uninstall $ppa" $?
-                    } || printSuccess "$ppa uninstalled"; runUpdate=1 
-                } || printInformation "PPA $ppa not exist!!!"
+                        printMessages "Error on uninstall $ppa" 4 $? "${FUNCNAME[0]}"; exitError $?
+                    } || printMessages "$ppa uninstalled" 1; runUpdate=1 
+                } ||  printMessages "PPA $ppa not exist!!!" 2
             ;;
         esac
     done
@@ -82,62 +118,99 @@ function appAPT() {
         i-no-recommends) cmdRun="sudo apt install --no-install-recommends %APP% -y" ;;
         i) cmdRun="sudo apt install %APP% -y" ;;
         u) cmdRun="sudo apt purge --auto-remove %APP% -y && sudo apt clean %APP%" ;;
-        *) printError ${FUNCNAME[0]} "Invalid arguments" 1 ;;
+        *) printMessages "Invalid arguments" 4 $EXIT_ERROR "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
     esac
 
     for app in "$@"; do
-        local isInstalled=$(apt list --installed 2>/dev/null | grep -i "^$app" | grep -c .)
+        local isInstalled=$(installedAPT $app | grep -c .)
         cmdRun="${cmdRun/\%APP\%/$app}"
-        echo $cmdRun
+        printMessages "$cmdRun"
 
         case "$operation" in
             i|i-no-recommends)
                 (( $isInstalled == 0 )) && {
                     eval "$cmdRun"
                     (( $? > 0 )) && {
-                        printError ${FUNCNAME[0]} "Error on install $app" $?
-                    } || printSuccess "$app installed"; runUpdate=1 
-                } || printInformation "APP $app already installed!!!"
+                        printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}; exitError $?
+                    } || printMessages "$app installed" 1; runUpdate=1 
+                } || printMessages "APP $app already installed!!!" 2
             ;;
             u)
                 (( $isInstalled > 0 )) && {
                     eval "$cmdRun"
                     (( $? > 0 )) && {
-                        printError ${FUNCNAME[0]} "Error on uninstall $app" $?
-                    } || printSuccess "$app uninstalled"
-                } || printInformation "APP $ppa not installed!!!"
+                        printMessages "Error on uninstall $app" 4 $? ${FUNCNAME[0]}; exitError $?
+                    } || printMessages "$app uninstalled" 1
+                } || printMessages "APP $ppa not installed!!!" 2
             ;;
         esac
+    done
+}
+
+# Install DEB Files
+function debFiles() {
+    isCommandExist gdebi
+    exitError $?
+
+    for app in "$@"; do
+        local isInstalled=$(installedAPT $app | grep -c .)
+        (( $isInstalled == 0 )) && {
+            sudo gdebi -n "$app"
+            (( $? > 0 )) && {
+                printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}; exitError $?
+            } || printMessages "$app installed" 1; runUpdate=1 
+        } || printMessages "APP $app already installed!!!" 2
+    done
+}
+
+# Install RPM Files
+function rpmFiles(){
+	isCommandExist alien
+    exitError $?
+
+	for app in "$@"; do
+        local isInstalled=$(installedAPT $app | grep -c .)
+        (( $isInstalled == 0 )) && {
+            sudo alien -i "$app"
+            (( $? > 0 )) && {
+                printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}; exitError $?
+            } || printMessages "$app installed" 1; runUpdate=1 
+        } || printMessages "APP $app already installed!!!" 2
+    done
+}
+
+: '
+####################### SNAP AREA #######################
+'
+# Install SNAP APP
+function installSNAP(){
+    setAppsAndPPAs "$@"
+    local -i count="0"
+
+    # Install
+    for APP in "${apps[@]}"; do
+        if [ $(appInstaled "-s" "$APP" | grep -c .) -eq 0 ]; then
+            echo "Install: $APP..."
+            local type="classic"
+
+            if [ ${#ppas[@]} -gt 0 ]&&[ $((count+1)) -ge ${#ppas[@]} ]; then
+                type=${ppas[$count]}
+                echo "$type"
+            fi
+
+            sudo snap install "$APP" --$type
+            ./$toolGeneric -e "$EMPTY_LINES"
+        else
+            echo "$APP Already Installed..."
+            ./$toolGeneric -e "$EMPTY_LINES"
+        fi
+        count=$count+1
     done
 }
 
 : '
 ####################### OTHERS AREA #######################
 '
-
-# Install DEB Files
-function installDebFiles(){
-	local -a apps=($1)
-
-	# Install
-    for APP in "${apps[@]}"; do
-        echo "Install $APP..."
-        sudo gdebi -n "$APP"
-        printEmptyLines 2
-    done
-}
-
-# Install RPM Files
-function installRpmFiles(){
-	local -a apps=($1)
-
-	# Install
-    for APP in "${apps[@]}"; do
-        echo "Install $APP..."
-        sudo alien -i "$APP"
-        printEmptyLines 2
-    done
-}
 
 # Install Gnome Shell Extension
 function installGnomeShellExtension(){
@@ -267,6 +340,9 @@ function createNormalDesktop(){
 
 declare _OPERATIONS_APT_="$1"; shift
 case "$_OPERATIONS_APT_" in
+    apt-installed) installedAPT "$@" ;;
     apt-ppa) ppaAPT "$@" ;;
     apt-app) appAPT "$@" ;;
+    deb-files) debFiles "$@" ;;
+    rpm-files) rpmFiles "$@" ;;
 esac
