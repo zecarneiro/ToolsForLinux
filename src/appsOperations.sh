@@ -71,10 +71,18 @@ function ppaAPT() {
     local operation="$1"; shift
     local cmdRun
     local runUpdate=0
+    local errorPPA
+    local countFail=0
 
     case "$operation" in
-        i) cmdRun="sudo add-apt-repository ppa:%PPA% -y" ;;
-        u) cmdRun="sudo add-apt-repository -r ppa:%PPA% -y" ;;
+        i)
+            cmdRun="sudo add-apt-repository ppa:%PPA% -y"
+            errorPPA="INSTALL FAIL PPA: "
+        ;;
+        u)
+            cmdRun="sudo add-apt-repository -r ppa:%PPA% -y"
+            errorPPA="UNINSTALL FAIL PPA: "
+        ;;
         *) printMessages "Invalid arguments" 4 $EXIT_ERROR "${FUNCNAME[0]}"; exitError $code ;;
     esac
 
@@ -91,7 +99,9 @@ function ppaAPT() {
                 (( $existPPA == 0 )) && {
                     eval "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on install $ppa" 4 $? "${FUNCNAME[0]}"; exitError $?
+                        printMessages "Error on install $ppa" 4 $? "${FUNCNAME[0]}"
+                        errorPPA="$errorPPA $ppa; "
+                        countFail=$((countFail+1))
                     } || printMessages "$ppa installed" 1; runUpdate=1 
                 } || printMessages "PPA $ppa already exist!!!" 2
             ;;
@@ -99,7 +109,9 @@ function ppaAPT() {
                 (( $existPPA > 0 )) && {
                     eval "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on uninstall $ppa" 4 $? "${FUNCNAME[0]}"; exitError $?
+                        printMessages "Error on uninstall $ppa" 4 $? "${FUNCNAME[0]}"
+                        errorPPA="$errorPPA $ppa; "
+                        countFail=$((countFail+1))
                     } || printMessages "$ppa uninstalled" 1; runUpdate=1 
                 } ||  printMessages "PPA $ppa not exist!!!" 2
             ;;
@@ -108,16 +120,28 @@ function ppaAPT() {
 
     # Update Lib APT
     if (( $runUpdate > 0 )); then sudo apt update; fi
+    (( $countFail > 0 )) && printMessages "$errorPPA" 2
 }
 
 function appAPT() {
     local operation="$1"; shift
     local cmdRun
+    local errorAPP
+    local countFail=0
 
     case "$operation" in
-        i-no-recommends) cmdRun="sudo apt install --no-install-recommends %APP% -y" ;;
-        i) cmdRun="sudo apt install %APP% -y" ;;
-        u) cmdRun="sudo apt purge --auto-remove %APP% -y && sudo apt clean %APP%" ;;
+        i-no-recommends)
+            cmdRun="sudo apt install --no-install-recommends %APP% -y"
+            errorAPP="INSTALL FAIL APP: "
+        ;;
+        i)
+            cmdRun="sudo apt install %APP% -y"
+            errorAPP="INSTALL FAIL APP: "
+        ;;
+        u)
+            cmdRun="sudo apt purge --auto-remove %APP% -y && sudo apt clean %APP%"
+            errorAPP="UNINSTALL FAIL APP: "
+        ;;
         *) printMessages "Invalid arguments" 4 $EXIT_ERROR "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
     esac
 
@@ -131,52 +155,116 @@ function appAPT() {
                 (( $isInstalled == 0 )) && {
                     eval "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}; exitError $?
-                    } || printMessages "$app installed" 1; runUpdate=1 
+                        printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}
+                        errorAPP="$errorAPP $app; "
+                        countFail=$((countFail+1))
+                    } || printMessages "$app installed" 1
                 } || printMessages "APP $app already installed!!!" 2
             ;;
             u)
                 (( $isInstalled > 0 )) && {
                     eval "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on uninstall $app" 4 $? ${FUNCNAME[0]}; exitError $?
+                        printMessages "Error on uninstall $app" 4 $? ${FUNCNAME[0]}
+                        errorAPP="$errorAPP $app; "
+                        countFail=$((countFail+1))
                     } || printMessages "$app uninstalled" 1
                 } || printMessages "APP $ppa not installed!!!" 2
             ;;
         esac
     done
+    (( $countFail > 0 )) && printMessages "$errorAPP" 2
 }
 
+: '
+####################### DEB/RPM/ AREA #######################
+'
 # Install DEB Files
 function debFiles() {
-    isCommandExist gdebi
-    exitError $?
+    local errorDEB="INSTALL FAIL DEB: "
+    local countFail=0
+    local -a listDependencies=("gdebi")
+
+    for dependency in "${listDependencies[@]}"; do
+        isCommandExist $dependency ${FUNCNAME[0]}
+        exitError $?
+    done
 
     for app in "$@"; do
         local isInstalled=$(installedAPT $app | grep -c .)
         (( $isInstalled == 0 )) && {
             sudo gdebi -n "$app"
             (( $? > 0 )) && {
-                printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}; exitError $?
-            } || printMessages "$app installed" 1; runUpdate=1 
+                printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}
+                errorDEB="$errorDEB $ppa; "
+                countFail=$((countFail+1))
+            } || printMessages "$app installed" 1
         } || printMessages "APP $app already installed!!!" 2
     done
+    (( $countFail > 0 )) && printMessages "$errorDEB" 2
 }
 
 # Install RPM Files
-function rpmFiles(){
-	isCommandExist alien
-    exitError $?
+function rpmFiles() {
+    local errorRPM="INSTALL FAIL RPM: "
+    local countFail=0
+    local -a listDependencies=("alien")
+
+    for dependency in "${listDependencies[@]}"; do
+        isCommandExist $dependency ${FUNCNAME[0]}
+        exitError $?
+    done
 
 	for app in "$@"; do
         local isInstalled=$(installedAPT $app | grep -c .)
         (( $isInstalled == 0 )) && {
             sudo alien -i "$app"
             (( $? > 0 )) && {
-                printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}; exitError $?
-            } || printMessages "$app installed" 1; runUpdate=1 
+                printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}
+                errorRPM="$errorRPM $ppa; "
+                countFail=$((countFail+1))
+            } || printMessages "$app installed" 1
         } || printMessages "APP $app already installed!!!" 2
     done
+    (( $countFail > 0 )) && printMessages "$errorRPM" 2
+}
+
+# Install Gnome Shell Extension
+function gnomeShellExtensions() {
+    local errorGNOME_EXT="INSTALL FAIL GNOME EXTENSION: "
+    local homePath="$(echo $HOME)"
+    local extensionsPath="$homePath/.local/share/gnome-shell/extensions"
+    local uuid=""
+    local countFail=0
+    local -a listDependencies=("unzip" "gnome-shell-extension-tool")
+
+    for dependency in "${listDependencies[@]}"; do
+        isCommandExist $dependency ${FUNCNAME[0]}
+        exitError $?
+    done
+
+    for extension in "$@"; do
+        uuid="$(unzip -c "$zipFile" metadata.json | grep uuid | cut -d \" -f4)"
+        if [ ! -z $uuid ]; then
+            # Create extension path
+            mkdir -p "$extensionsPath/$uuid"
+
+            # Extract zip Extension data
+            unzip -q "$extension" -d "$extensionsPath/$uuid/"
+
+            # Install extension
+            gnome-shell-extension-tool -e "$uuid"
+
+            (( $? > 0 )) && {
+                printMessages "Error on install $extension" 4 $? ${FUNCNAME[0]}
+                errorGNOME_EXT="$errorGNOME_EXT $extension; "
+                countFail=$((countFail+1))
+            } || printMessages "$extension installed" 1
+        else
+            printMessages "ERROR: Failed on get UUID from extension: $extension" 4
+        fi
+    done
+    (( $countFail > 0 )) && printMessages "$errorGNOME_EXT" 2
 }
 
 : '
@@ -208,28 +296,28 @@ function installSNAP(){
     done
 }
 
+# Uninstall SNAP APP
+function uninstallSNAP(){
+    setAppsAndPPAs "$@"
+
+    # Uninstall
+    for APP in "${apps[@]}"; do
+        echo "Uninstall $APP..."
+        if [ $(appInstaled "-s" "$APP" | grep -c .) -gt 0 ]; then
+            sudo snap remove "$APP"
+            ./$toolGeneric -e "$EMPTY_LINES"
+        else
+            echo "$APP not Installed..."
+            ./$toolGeneric -e "$EMPTY_LINES"
+        fi
+    done
+}
+
 : '
 ####################### OTHERS AREA #######################
 '
 
-# Install Gnome Shell Extension
-function installGnomeShellExtension(){
-    local zipFile="$1"
-    local uuid="$(unzip -c "$zipFile" metadata.json | grep uuid | cut -d \" -f4)"
 
-    if [ ! -z $uuid ]; then
-        local extensionsPath="$home/.local/share/gnome-shell/extensions/$uuid"
-
-        # Create extension path
-        mkdir -p "$extensionsPath"
-
-        # Install Extension
-        unzip -q "$zipFile" -d "$extensionsPath/"
-        gnome-shell-extension-tool -e "$uuid"
-    else
-        echo "ERROR: Failed on get UUID"
-    fi
-}
 
 # Kill app with pid
 function killPID(){
@@ -345,4 +433,5 @@ case "$_OPERATIONS_APT_" in
     apt-app) appAPT "$@" ;;
     deb-files) debFiles "$@" ;;
     rpm-files) rpmFiles "$@" ;;
+    gnome-shell-extensions) gnomeShellExtensions "$@"
 esac

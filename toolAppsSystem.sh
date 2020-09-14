@@ -132,53 +132,6 @@ function ppaInstaled(){
 ####################### APT AREA #######################
 '
 
-
-: '
-####################### SNAP AREA #######################
-'
-# Install SNAP APP
-function installSNAP(){
-    setAppsAndPPAs "$@"
-    local -i count="0"
-
-    # Install
-    for APP in "${apps[@]}"; do
-        if [ $(appInstaled "-s" "$APP" | grep -c .) -eq 0 ]; then
-            echo "Install: $APP..."
-            local type="classic"
-
-            if [ ${#ppas[@]} -gt 0 ]&&[ $((count+1)) -ge ${#ppas[@]} ]; then
-                type=${ppas[$count]}
-                echo "$type"
-            fi
-
-            sudo snap install "$APP" --$type
-            ./$toolGeneric -e "$EMPTY_LINES"
-        else
-            echo "$APP Already Installed..."
-            ./$toolGeneric -e "$EMPTY_LINES"
-        fi
-        count=$count+1
-    done
-}
-
-# Uninstall SNAP APP
-function uninstallSNAP(){
-    setAppsAndPPAs "$@"
-
-    # Uninstall
-    for APP in "${apps[@]}"; do
-        echo "Uninstall $APP..."
-        if [ $(appInstaled "-s" "$APP" | grep -c .) -gt 0 ]; then
-            sudo snap remove "$APP"
-            ./$toolGeneric -e "$EMPTY_LINES"
-        else
-            echo "$APP not Installed..."
-            ./$toolGeneric -e "$EMPTY_LINES"
-        fi
-    done
-}
-
 : '
 ####################### FLATPAK AREA #######################
 '

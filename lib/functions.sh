@@ -42,10 +42,11 @@ function exitError() {
 
 function isCommandExist() {
     local commands="$1"
+    local functionName="$2"
     command -v $commands >/dev/null && {
         echo "1"
     } || {
-        printMessages 2 "COMMAND [$commands] could not be found" $EXIT_ERROR ${FUNCNAME[0]}
+        printMessages "COMMAND [$commands] could not be found" 2 $EXIT_ERROR $functionName
         return $EXIT_ERROR
     }
 }
