@@ -1,6 +1,12 @@
 #!/bin/bash
 # Author: José M. C. Noronha
 
+function printWithPropont() {
+    local propont_name="\$"  
+    [[ -n "$2" ]] && propont_name="$2"    
+    echo -e "\n${LIGHTCYAN}${propont_name}>${NOCOLOR} ${1}"
+}
+
 : '
 Print Messages by type with color. ARGS:
     ARG1:
@@ -15,23 +21,17 @@ Print Messages by type with color. ARGS:
 function printMessages() {
     local msg="$1"
     local typeMSG="$2"
-    local code="$3"
-    local propont="\$> "
     local functionName=""
-    [[ -z "$4" ]] || functionName="$4: "
+    [[ -z "$3" ]] || functionName="$3: "
 
     case "$typeMSG" in
-        1) echo -e "$propont${GREEN}${functionName}$msg${NOCOLOR}" ;;
-        2) echo -e "$propont${YELLOW}${functionName}$msg${NOCOLOR}" ;;
-        3) echo -e "$propont${BLUE}${functionName}$msg${NOCOLOR}" ;;
-        4)
-            echo -e "$propont${RED}ERROR ${functionName}$msg"
-            if [ -n "$code" ]; then
-                echo -e "\nERROR CODE ${functionName}$code${NOCOLOR}"
-            fi
-        ;;
-        *) echo -e "$propont${functionName}$msg" ;;
+        1) msg="${GREEN}${functionName}$msg${NOCOLOR}" ;;
+        2) msg="${YELLOW}${functionName}$msg${NOCOLOR}" ;;
+        3) msg="${BLUE}${functionName}$msg${NOCOLOR}" ;;
+        4) msg="${RED}ERROR ${functionName}$msg" ;;
+        *) msg="${functionName}$msg" ;;
     esac
+    printWithPropont "$msg" "${_ALIAS_TOOLSFORLINUX_}"
 }
 
 function exitError() {
@@ -46,7 +46,13 @@ function isCommandExist() {
     command -v $commands >/dev/null && {
         return 0
     } || {
-        printMessages "COMMAND [$commands] could not be found" 2 $EXIT_ERROR $functionName
+        printMessages "COMMAND [$commands] could not be found" 2 $functionName
         return $EXIT_ERROR
     }
+}
+
+function executeCMD() {
+    printWithPropont "${DARKGRAY}${1}${NOCOLOR}" "${_ALIAS_TOOLSFORLINUX_}"
+    eval "$1"
+    return $?
 }

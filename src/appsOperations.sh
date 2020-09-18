@@ -1,90 +1,114 @@
 #!/bin/bash
 # Author: José M. C. Noronha
 
-# GLOBAL VARIABLE
-declare _SUDO_="sudo"
-declare -a _DEPENDENCIES_APT_=("$_SUDO_" "add-apt-repository" "apt")
-declare -a _DEPENDENCIES_DEB_=("$_SUDO_" "gdebi")
-declare -a _DEPENDENCIES_RPM_=("$_SUDO_" "alien")
-declare -a _DEPENDENCIES_GNOME_SHELL_EXT_=("unzip" "gnome-shell-extension-tool")
-declare -a _DEPENDENCIES_SNAP_=("$_SUDO_" "snapd" "snapd-xdg-open")
-declare -a _DEPENDENCIES_FLATPAK_=("torsocks" "flatpak" "xdg-desktop-portal-gtk" "gnome-software-plugin-flatpak")
-
-# Check if installed
-function appInstaled(){
-    local typeApp="$1"
-    local nameApp=$(./$toolGeneric -t "$2")
-
-    case "$typeApp" in
-        -f|--flatpak)
-            if [ -z "$nameApp" ]; then
-                flatpak list --all | awk '{if (NR!=1) {print $1}}'
-                exit 0
-            fi
-            flatpak list --all | awk '{if (NR!=1) {print $1}}' | grep -i "^$nameApp"
-        ;;
-        *) printInvalidArg ;;
+function dependencyAPPS() {
+    local _sudo_="sudo"
+    local -a dependencyArray
+    case "$1" in
+        apt) dependencyArray=("$_sudo_" "add-apt-repository" "apt" "dpkg") ;;
+        deb) dependencyArray=("$_sudo_" "gdebi") ;;
+        rpm) dependencyArray=("$_sudo_" "alien") ;;
+        gnome-shell-ext) dependencyArray=("unzip" "gnome-shell-extension-tool") ;;
+        snap) dependencyArray=("$_sudo_" "snapd" "snapd-xdg-open") ;;
+        flatpak) dependencyArray=("torsocks" "flatpak" "xdg-desktop-portal-gtk" "gnome-software-plugin-flatpak") ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $EXIT_ERROR ;;
     esac
-}
-
-# Check if ppa/remote exist or not
-function ppaInstaled() {
-    local typePPA="$1"
-    local ppa="$2"
     
-    case "$typePPA" in
-        -f|--flatpak)
-            if [ -z "$ppa" ]; then
-                flatpak remote-list | awk '{if (NR!=0) {print $1}}'
-                exit 0
-            fi
-            
-        ;;
-        *) printInvalidArg ;;
-    esac
+    for dependency in "${dependencyArray[@]}"; do
+        isCommandExist $dependency ${FUNCNAME[0]}
+        (( $? > 0 )) && return $EXIT_ERROR
+    done
+    return 0
 }
 
 : '
 ####################### APT/DEB/RPM AREA #######################
 '
-# Get List of App APT Installed
-function installedAPT() {
-    for dependency in "${_DEPENDENCIES_APT_[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        exitError $?
-    done
+function cleanSystemAPT() {
+    local -i linesWithRC
+    local homeDir="$(echo $HOME)"
+    local configFiles="$homeDir/${_ALIAS_TOOLSFORLINUX_}ListaConfigFiles"
 
-    [[ -z "$1" ]] && {
-        apt list --installed 2>/dev/null
-    } || {
-        apt -qq list "$1" --installed 2>/dev/null
-    }
+    printMessages "Clean System for APT" 3
+
+    dependencyAPPS apt
+    exitError $?
+
+    executeCMD "sudo apt autoremove -y"
+    exitError $?
+
+    linesWithRC="$(executeCMD 'dpkg --list | grep -c '^rc'')"
+    echo $linesWithRC; exit 1
+    if (( $linesWithRC > 0 )); then
+		executeCMD "dpkg -l | grep ^rc | awk '{ print $2}' | sudo xargs dpkg --purge"
+	fi
     return $?
 }
 
-# Install/Uninstall PPA
+# Update APT repository
+function updateAPT() {
+    dependencyAPPS apt
+    exitError $?
+
+    printMessages "Update Repository APT" 3
+
+    executeCMD "sudo apt update"
+	return $?
+}
+
+# Upgrade APT System
+function upgradeAPT() {
+    dependencyAPPS apt
+    exitError $?
+
+    printMessages "Upgrade APP APT" 3
+
+	# Upgrade System
+	while [ 1 ]; do
+        local upgradableApp=$(sudo apt list --upgradable | grep -c .)
+		# Check if have new package
+		if (( upgradableApp < 2 )); then
+			break
+		fi
+        executeCMD "sudo apt upgrade -y"
+	done
+}
+
+# Get List of App APT Installed
+function installedAPT() {
+    dependencyAPPS apt
+    exitError $?
+
+    [[ -z "$1" ]] && {
+        apt list --installed 2>/dev/null
+        return $?
+    } || {
+        apt -qq list "$1" --installed 2>/dev/null
+        return $?
+    }
+}
+
+# Install/Uninstall APT PPA
 function repositoryAPT() {
     local operation="$1"; shift
-    local cmdRun
+    local cmd
     local runUpdate=0
     local errorPPA
     local countFail=0
 
-    for dependency in "${_DEPENDENCIES_APT_[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        exitError $?
-    done
+    dependencyAPPS apt
+    exitError $?
 
     case "$operation" in
         i)
-            cmdRun="sudo add-apt-repository ppa:%REPOSITORY% -y"
+            cmd="sudo add-apt-repository ppa:%REPOSITORY% -y"
             errorPPA="INSTALL FAIL REPOSITORY: "
         ;;
         u)
-            cmdRun="sudo add-apt-repository -r ppa:%REPOSITORY% -y"
+            cmd="sudo add-apt-repository -r ppa:%REPOSITORY% -y"
             errorPPA="UNINSTALL FAIL REPOSITORY: "
         ;;
-        *) printMessages "Invalid arguments" 4 $EXIT_ERROR "${FUNCNAME[0]}"; exitError $code ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
     esac
 
     for repository in "$@"; do
@@ -92,15 +116,14 @@ function repositoryAPT() {
             ppa="$(echo "$repository" | cut -d ":" -f2)"
         fi
         local existPPA=$(grep "^deb .*$repository" /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -c .)
-        cmdRun="${cmdRun/\%REPOSITORY\%/$repository}"
-        printMessages "$cmdRun"
+        local cmdRun="${cmd/\%REPOSITORY\%/$repository}"
 
         case "$operation" in
             i)
                 (( $existPPA == 0 )) && {
-                    eval "$cmdRun"
+                    executeCMD "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on install $repository" 4 $? "${FUNCNAME[0]}"
+                        printMessages "Error on install $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
                     } || printMessages "$repository installed" 1; runUpdate=1 
@@ -108,60 +131,58 @@ function repositoryAPT() {
             ;;
             u)
                 (( $existPPA > 0 )) && {
-                    eval "$cmdRun"
+                    executeCMD "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on uninstall $repository" 4 $? "${FUNCNAME[0]}"
+                        printMessages "Error on uninstall $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
-                    } || printMessages "$repository uninstalled" 1; runUpdate=1 
+                    } || printMessages "$repository uninstalled" 1; runUpdate=1
                 } ||  printMessages "REPOSITORY $repository not exist!!!" 2
             ;;
         esac
     done
 
     # Update Lib APT
-    if (( $runUpdate > 0 )); then sudo apt update; fi
+    if (( $runUpdate > 0 )); then updateAPT; fi
     (( $countFail > 0 )) && printMessages "$errorPPA" 2
 }
 
+# Install/Uninstall APT APP
 function appAPT() {
     local operation="$1"; shift
-    local cmdRun
+    local cmd
     local errorAPP
     local countFail=0
 
-    for dependency in "${_DEPENDENCIES_APT_[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        exitError $?
-    done
+    dependencyAPPS apt
+    exitError $?
 
     case "$operation" in
         i-no-recommends)
-            cmdRun="sudo apt install --no-install-recommends %APP% -y"
+            cmd="sudo apt install --no-install-recommends %APP% -y"
             errorAPP="INSTALL FAIL APP: "
         ;;
         i)
-            cmdRun="sudo apt install %APP% -y"
+            cmd="sudo apt install %APP% -y"
             errorAPP="INSTALL FAIL APP: "
         ;;
         u)
-            cmdRun="sudo apt purge --auto-remove %APP% -y && sudo apt clean %APP%"
+            cmd="sudo apt purge --auto-remove %APP% -y && sudo apt clean %APP%"
             errorAPP="UNINSTALL FAIL APP: "
         ;;
-        *) printMessages "Invalid arguments" 4 $EXIT_ERROR "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
     esac
 
     for app in "$@"; do
         local isInstalled=$(installedAPT $app | grep -c .)
-        cmdRun="${cmdRun/\%APP\%/$app}"
-        printMessages "$cmdRun"
+        local cmdRun="${cmd/\%APP\%/$app}"
 
         case "$operation" in
             i|i-no-recommends)
                 (( $isInstalled == 0 )) && {
-                    eval "$cmdRun"
+                    executeCMD "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}
+                        printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
                     } || printMessages "$app installed" 1
@@ -169,9 +190,9 @@ function appAPT() {
             ;;
             u)
                 (( $isInstalled > 0 )) && {
-                    eval "$cmdRun"
+                    executeCMD "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on uninstall $app" 4 $? ${FUNCNAME[0]}
+                        printMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
                     } || printMessages "$app uninstalled" 1
@@ -189,18 +210,18 @@ function appAPT() {
 function debFiles() {
     local errorDEB="INSTALL FAIL DEB: "
     local countFail=0
+    local cmd="sudo gdebi -n %APP%"
 
-    for dependency in "${_DEPENDENCIES_DEB_[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        exitError $?
-    done
+    dependencyAPPS deb
+    exitError $?
 
     for app in "$@"; do
         local isInstalled=$(installedAPT $app | grep -c .)
+        local cmdRun="${cmd/\%APP\%/$app}"
         (( $isInstalled == 0 )) && {
-            sudo gdebi -n "$app"
+            executeCMD "$cmdRun"
             (( $? > 0 )) && {
-                printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}
+                printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                 errorDEB="$errorDEB $ppa; "
                 countFail=$((countFail+1))
             } || printMessages "$app installed" 1
@@ -213,18 +234,18 @@ function debFiles() {
 function rpmFiles() {
     local errorRPM="INSTALL FAIL RPM: "
     local countFail=0
+    local cmd="sudo alien -i %APP%"
 
-    for dependency in "${_DEPENDENCIES_RPM_[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        exitError $?
-    done
+    dependencyAPPS rpm
+    exitError $?
 
 	for app in "$@"; do
         local isInstalled=$(installedAPT $app | grep -c .)
+        local cmdRun="${cmd/\%APP\%/$app}"
         (( $isInstalled == 0 )) && {
-            sudo alien -i "$app"
+            executeCMD "$cmdRun"
             (( $? > 0 )) && {
-                printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}
+                printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                 errorRPM="$errorRPM $ppa; "
                 countFail=$((countFail+1))
             } || printMessages "$app installed" 1
@@ -241,25 +262,23 @@ function gnomeShellExtensions() {
     local uuid=""
     local countFail=0
 
-    for dependency in "${_DEPENDENCIES_GNOME_SHELL_EXT_[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        exitError $?
-    done
+    dependencyAPPS gnome-shell-ext
+    exitError $?
 
     for extension in "$@"; do
         uuid="$(unzip -c "$zipFile" metadata.json | grep uuid | cut -d \" -f4)"
         if [ ! -z $uuid ]; then
             # Create extension path
-            mkdir -p "$extensionsPath/$uuid"
+            executeCMD "mkdir -p \"$extensionsPath/$uuid\""
 
             # Extract zip Extension data
-            unzip -q "$extension" -d "$extensionsPath/$uuid/"
+            executeCMD "unzip -q \"$extension\" -d \"$extensionsPath/$uuid/\""
 
             # Install extension
-            gnome-shell-extension-tool -e "$uuid"
+            executeCMD "gnome-shell-extension-tool -e \"$uuid\""
 
             (( $? > 0 )) && {
-                printMessages "Error on install $extension" 4 $? ${FUNCNAME[0]}
+                printMessages "Error on install $extension" 4 ${FUNCNAME[0]}
                 errorGNOME_EXT="$errorGNOME_EXT $extension; "
                 countFail=$((countFail+1))
             } || printMessages "$extension installed" 1
@@ -273,60 +292,67 @@ function gnomeShellExtensions() {
 : '
 ####################### SNAP AREA #######################
 '
+# Update Snap repository
+function updateSNAP() {
+    dependencyAPPS snap
+    exitError $?
+
+    printMessages "Update/Upgrade Repository/APP SNAP" 3
+
+    executeCMD "sudo snap refresh"
+	return $?
+}
+
 # Get List of App SNAP Installed
 function installedSNAP() {
-    for dependency in "${_DEPENDENCIES_SNAP_[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        exitError $?
-    done
+    dependencyAPPS snap
+    exitError $?
 
     [[ -z "$1" ]] && {
         snap list | awk '{if (NR!=1) {print $1}}'
+        return $?
     } || {
         snap list | awk '{if (NR!=1) {print $1}}' | grep -i "^$1"
+        return $?
     }
-    return $?
 }
 
-# Install SNAP APP
+# Install/Uninstall SNAP APP
 function appSNAP() {
     local operation="$1"; shift
-    local cmdRun
+    local cmd
     local errorAPP
     local countFail=0
 
-    for dependency in "${_DEPENDENCIES_SNAP_[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        exitError $?
-    done
+    dependencyAPPS snap
+    exitError $?
 
     case "$operation" in
         i|i-classic)
-            cmdRun="sudo snap install %APP%"
+            cmd="sudo snap install %APP%"
             errorAPP="INSTALL FAIL APP: "
         ;;
         u)
-            cmdRun="sudo snap remove %APP%"
+            cmd="sudo snap remove %APP%"
             errorAPP="UNINSTALL FAIL APP: "
         ;;
-        *) printMessages "Invalid arguments" 4 $EXIT_ERROR "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
     esac
 
     for app in "$@"; do
         local isInstalled=$(installedSNAP $app | grep -c .)
-        cmdRun="${cmdRun/\%APP\%/$app}"
-        printMessages "$cmdRun"
+        local cmdRun="${cmd/\%APP\%/$app}"
 
         case "$operation" in
             i|i-classic)
                 (( $isInstalled == 0 )) && {
                     if [ "$operation" = "i-classic" ]; then
-                        eval "$cmdRun --classic"
+                        executeCMD "$cmdRun --classic"
                     else
-                        eval "$cmdRun"
+                        executeCMD "$cmdRun"
                     fi
                     (( $? > 0 )) && {
-                        printMessages "Error on install $app" 4 $? ${FUNCNAME[0]}
+                        printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
                     } || printMessages "$app installed" 1
@@ -334,9 +360,9 @@ function appSNAP() {
             ;;
             u)
                 (( $isInstalled > 0 )) && {
-                    eval "$cmdRun"
+                    executeCMD "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on uninstall $app" 4 $? ${FUNCNAME[0]}
+                        printMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
                     } || printMessages "$app uninstalled" 1
@@ -350,44 +376,66 @@ function appSNAP() {
 : '
 ####################### FLATPAK AREA #######################
 '
+# Update FLATPAK repository
+function updateFLATPAK() {
+    dependencyAPPS flatpak
+    exitError $?
+
+    printMessages "Update/Upgrade Repository/APP FLATPAK" 3
+
+    executeCMD "flatpak update || torsocks flatpak update"
+	return $?
+}
+
+# Get List of App FLATPAK Installed
+function installedFLATPAK() {
+    dependencyAPPS flatpak
+    exitError $?
+
+    [[ -z "$1" ]] && {
+        flatpak list --all | awk '{if (NR!=1) {print $1}}'
+        return $?
+    } || {
+        flatpak list --all | awk '{if (NR!=1) {print $1}}' | grep -i "^$nameApp"
+        return $?
+    }
+}
+
+# Install/Uninstall FLATPAK APP
 function repositoryFLATPAK() {
     local operation="$1"; shift
-    local cmdRun
+    local cmd
     local runUpdate=0
     local errorPPA
     local countFail=0
 
-    for dependency in "${_DEPENDENCIES_FLATPAK_[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        exitError $?
-    done
+    dependencyAPPS flatpak
+    exitError $?
 
     case "$operation" in
         i)
-            cmdRun="flatpak remote-add --if-not-exists %REPOSITORY%"
+            cmd="flatpak remote-add --if-not-exists %REPOSITORY%"
+            cmd="${cmd} || torsocks ${cmd}"
             errorPPA="INSTALL FAIL REPOSITORY: "
         ;;
         u)
-            cmdRun="sudo add-apt-repository -r ppa:%REPOSITORY% -y"
+            cmd="flatpak remote-delete %REPOSITORY%"
+            cmd="${cmd} || torsocks ${cmd}"
             errorPPA="UNINSTALL FAIL REPOSITORY: "
         ;;
-        *) printMessages "Invalid arguments" 4 $EXIT_ERROR "${FUNCNAME[0]}"; exitError $code ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
     esac
 
     for repository in "$@"; do
-        if [ ! -z "$(echo "$repository" | cut -d ":" -f2)" ]; then
-            ppa="$(echo "$repository" | cut -d ":" -f2)"
-        fi
         local existPPA=$(flatpak remote-list | awk '{if (NR!=0) {print $1}}' | grep -i "$repository" | grep -c .)
-        cmdRun="${cmdRun/\%REPOSITORY\%/$repository}"
-        printMessages "$cmdRun"
+        local cmdRun="${cmd/\%REPOSITORY\%/$repository}"
 
         case "$operation" in
             i)
                 (( $existPPA == 0 )) && {
-                    eval "$cmdRun"
+                    executeCMD "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on install $repository" 4 $? "${FUNCNAME[0]}"
+                        printMessages "Error on install $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
                     } || printMessages "$repository installed" 1; runUpdate=1 
@@ -395,9 +443,9 @@ function repositoryFLATPAK() {
             ;;
             u)
                 (( $existPPA > 0 )) && {
-                    eval "$cmdRun"
+                    executeCMD "$cmdRun"
                     (( $? > 0 )) && {
-                        printMessages "Error on uninstall $repository" 4 $? "${FUNCNAME[0]}"
+                        printMessages "Error on uninstall $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
                     } || printMessages "$repository uninstalled" 1; runUpdate=1 
@@ -406,119 +454,126 @@ function repositoryFLATPAK() {
         esac
     done
 
-    # Update Lib APT
-    if (( $runUpdate > 0 )); then sudo apt update; fi
+    # Update Lib
+    if (( $runUpdate > 0 )); then updateFLATPAK; fi
     (( $countFail > 0 )) && printMessages "$errorPPA" 2
 }
 
 # Install FLATPAK APP
 function appFLATPAK() {
     local operation="$1"; shift
-    local cmdRun
+    local cmd
     local errorAPP
     local countFail=0
 
-    for dependency in "${_DEPENDENCIES_FLATPAK_[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        exitError $?
-    done
+    dependencyAPPS flatpak
+    exitError $?
 
     case "$operation" in
         i)
-            cmdRun="sudo snap install %APP%"
+            cmd="flatpak install %APP%"
+            cmd="${cmd} || torsocks ${cmd}"
             errorAPP="INSTALL FAIL APP: "
         ;;
         u)
-            cmdRun="sudo snap remove %APP%"
+            cmd="flatpak uninstall %APP%"
+            cmd="${cmd} || torsocks ${cmd}"
             errorAPP="UNINSTALL FAIL APP: "
         ;;
-        *) printMessages "Invalid arguments" 4 $EXIT_ERROR "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
     esac
 
-    # Set ppa
-    for PPA in "${ppa[@]}"; do
-        if [ ! -z "$PPA" ]; then
-            if [ $(checkIsAddedPPA "${vendorApp[$vendorIndex]}" "FLATPAK") -eq 0 ]; then
-            	PPA="${vendorApp[$vendorIndex]} $PPA"
-                echo "Set Remote: $PPA..."
-                
-                if [ $isPermitedSO -eq 1 ]; then
-                	
-                    printEmptyLines 2
-                    flatpak update
-                else
-                	torsocks flatpak remote-add --if-not-exists $PPA
-                    printEmptyLines 2
-                    torsocks flatpak update
-                fi
-            else
-                echo "This $PPA Already Exist..."
-            fi
-        fi
-        vendorIndex=$vendorIndex+1
+    for app in "$@"; do
+        local isInstalled=$(installedFLATPAK $app | grep -c .)
+        local cmdRun="${cmd/\%APP\%/$app}"
+
+        case "$operation" in
+            i)
+                (( $isInstalled == 0 )) && {
+                    executeCMD "$cmdRun"
+                    (( $? > 0 )) && {
+                        printMessages "Error on install $app" 4 ${FUNCNAME[0]}
+                        errorAPP="$errorAPP $app; "
+                        countFail=$((countFail+1))
+                    } || printMessages "$app installed" 1
+                } || printMessages "APP $app already installed!!!" 2
+            ;;
+            u)
+                (( $isInstalled > 0 )) && {
+                    executeCMD "$cmdRun"
+                    (( $? > 0 )) && {
+                        printMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
+                        errorAPP="$errorAPP $app; "
+                        countFail=$((countFail+1))
+                    } || printMessages "$app uninstalled" 1
+                } || printMessages "APP $ppa not installed!!!" 2
+            ;;
+        esac
     done
-
-    # Install
-    vendorIndex=0
-    for APP in "${apps[@]}"; do
-        if [ $(checkIsInstaled "$APP" "FLATPAK") -eq 0 ]; then
-        	APP="${vendorApp[$vendorIndex]} $APP"
-            echo "Install: $APP..."
-            if [ $isPermitedSO -eq 1 ]; then
-            	flatpak install $APP
-            else
-            	torsocks flatpak install $APP
-            fi
-            printEmptyLines 2
-        else
-            echo "$APP Already Installed..."
-        fi
-        vendorIndex=$vendorIndex+1
-    done
-}
-
-# Uninstall FLATPAK APP
-function uninstallFLATPAK(){
-    local -a apps=($1)
-    local -a ppa=($2)
-    local -i isPermitedSO=$(checkOperatingSystemPermited)
-
-    # Del ppa
-    for PPA in "${ppa[@]}"; do
-        if [ ! -z "$PPA" ]; then
-            if [ $(checkIsAddedPPA "$PPA" "FLATPAK") -eq 1 ]; then
-                echo "Remove Remote: $PPA..."
-
-                if [ $isPermitedSO -eq 1 ]; then
-                	flatpak remote-delete $PPA
-                    printEmptyLines 2
-                    flatpak update
-                else
-                	torsocks flatpak remote-delete $PPA
-                    printEmptyLines 2
-                    torsocks flatpak update
-                fi
-            fi
-        fi
-    done
-
-    # Uninstall
-    for APP in "${apps[@]}"; do
-        if [ $(checkIsInstaled "$APP" "FLATPAK") -eq 1 ]; then
-            echo "Uninstall $APP..."
-            if [ $isPermitedSO -eq 1 ]; then
-            	flatpak uninstall $APP
-            else
-            	torsocks flatpak uninstall $APP
-            fi
-            printEmptyLines 2
-        fi
-    done
+    (( $countFail > 0 )) && printMessages "$errorAPP" 2
 }
 
 : '
 ####################### OTHERS AREA #######################
 '
+# Fix Locale Package
+function fixLocalePackage() {
+    local errorCode=0
+    local localeLang
+    local language_all_package
+    local -a dependencies=("locale" "check-language-support")
+
+    for dependency in "${dependencies[@]}"; do
+        isCommandExist "$dependency"
+        errorCode=$?
+        (( $errorCode > 0 )) && {
+            printMessages "Install language-selector-common" 4 "${FUNCNAME[0]}"
+            exitError "$errorCode"
+        }
+    done
+    
+    printMessages "Fix Locale Package" 3
+	localeLang="$(locale | grep LANGUAGE | cut -d '=' -f2- | cut -d ':' -f1)"
+    if [ -n "$localeLang" ]; then
+        language_all_package="$(check-language-support -l $lacaleLang)"
+        appAPT i "$language_all_package"
+    fi
+}
+
+function upgradeSystem() {
+    local validArguments=0
+    case "$1" in
+        apt|snap|flatpak|all) validArguments=1 ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
+    esac
+    
+    dependencyAPPS apt
+    exitError $?
+
+    # Always execute update for APT
+    updateAPT
+
+    # Upgrade all APP APT
+    if [ "$1" = "apt" ]||[ "$1" = "all" ]; then
+        fixLocalePackage
+        upgradeAPT
+        cleanSystemAPT
+    fi
+
+    # Upgrade all APP SNAP
+    if [ "$1" = "snap" ]||[ "$1" = "all" ]; then
+        dependencyAPPS snap
+        (( $? < 1 )) && updateSNAP
+    fi
+
+    # Upgrade all APP FLATPAK
+    if [ "$1" = "flatpak" ]||[ "$1" = "all" ]; then
+        dependencyAPPS flatpak
+        (( $? < 1 )) && updateFLATPAK
+    fi
+    printMessages "DONE" 1
+}
+
 # Kill app with pid
 function killPID() {
 	local pid="$1"
@@ -628,12 +683,30 @@ function createNormalDesktop() {
 
 declare _OPERATIONS_APT_="$1"; shift
 case "$_OPERATIONS_APT_" in
+    # APT
+    apt-update) updateAPT ;;
     apt-installed) installedAPT "$@" ;;
     apt-repository) repositoryAPT "$@" ;;
     apt-app) appAPT "$@" ;;
+
+    # DEB/RPM/Gnome Shell EXT
     deb-files) debFiles "$@" ;;
     rpm-files) rpmFiles "$@" ;;
     gnome-shell-extensions) gnomeShellExtensions "$@" ;;
+
+    # Snap
+    snap-update) updateSNAP ;;
     snap-installed) installedSNAP "$@" ;;
     snap-app) appSNAP "$@" ;;
+
+    # Flatpak
+    flatpak-update) updateFLATPAK ;;
+    flatpak-installed) installedFLATPAK "$@" ;;
+    flatpak-repository) repositoryFLATPAK "$@" ;;
+    flatpak-app) appFLATPAK "$@" ;;
+
+    # OTHERS
+    system-upgrade) upgradeSystem "$@" ;;
+    fix-locale-package) fixLocalePackage ;;
+    pid-kill) killPID "$@" ;;
 esac
