@@ -12,22 +12,6 @@ function clearScreen(){
 	printf "\033c"
 }
 
-: '
-Trim word by characters
-word = $1
-characters = $2
-'
-function trim() {
-    local word="$1"
-    local characters="$2"
-
-    if [ -z "$characters" ]; then
-        characters='." "$#%&!*'
-    fi
-    
-    echo "$word" | sed "s/[$characters]//g"
-}
-
 # Trim
 
 # Print empty lines. NumOfLines = $1

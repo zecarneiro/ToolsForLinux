@@ -47,12 +47,18 @@ function isCommandExist() {
         return 0
     } || {
         printMessages "COMMAND [$commands] could not be found" 2 $functionName
-        return $EXIT_ERROR
+        return $_EXIT_ERROR_
     }
 }
 
+: '
+    Execute an command and show the command before
+        -> If Arg2 not empty not show command
+'
 function executeCMD() {
-    printWithPropont "${DARKGRAY}${1}${NOCOLOR}" "${_ALIAS_TOOLSFORLINUX_}"
+    if [ -z "$2" ]; then
+        printWithPropont "${DARKGRAY}${1}${NOCOLOR}" "${_ALIAS_TOOLSFORLINUX_}"
+    fi
     eval "$1"
     return $?
 }

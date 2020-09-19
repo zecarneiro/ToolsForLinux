@@ -1,33 +1,12 @@
 #!/bin/bash
 # Author: José M. C. Noronha
 
-function dependencyAPPS() {
-    local _sudo_="sudo"
-    local -a dependencyArray
-    case "$1" in
-        apt) dependencyArray=("$_sudo_" "add-apt-repository" "apt" "dpkg") ;;
-        deb) dependencyArray=("$_sudo_" "gdebi") ;;
-        rpm) dependencyArray=("$_sudo_" "alien") ;;
-        gnome-shell-ext) dependencyArray=("unzip" "gnome-shell-extension-tool") ;;
-        snap) dependencyArray=("$_sudo_" "snapd" "snapd-xdg-open") ;;
-        flatpak) dependencyArray=("torsocks" "flatpak" "xdg-desktop-portal-gtk" "gnome-software-plugin-flatpak") ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $EXIT_ERROR ;;
-    esac
-    
-    for dependency in "${dependencyArray[@]}"; do
-        isCommandExist $dependency ${FUNCNAME[0]}
-        (( $? > 0 )) && return $EXIT_ERROR
-    done
-    return 0
-}
-
 : '
-####################### APT/DEB/RPM AREA #######################
+####################### APT AREA #######################
 '
 function cleanSystemAPT() {
     local -i linesWithRC
     local homeDir="$(echo $HOME)"
-    local configFiles="$homeDir/${_ALIAS_TOOLSFORLINUX_}ListaConfigFiles"
 
     printMessages "Clean System for APT" 3
 
@@ -36,13 +15,23 @@ function cleanSystemAPT() {
 
     executeCMD "sudo apt autoremove -y"
     exitError $?
+    #dpkg --list
+    data='oi r1 jjj \nrc ggg aaa\naaaa tttt rca'
+    linesWithRC=$( echo -e "$data" )
+    echo $?
+    echo $linesWithRC; exit 1 
+    (( $? > $_SUCCESS_ )) && {
+        printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
+        return $_EXIT_ERROR_
+    }
 
-    linesWithRC="$(executeCMD 'dpkg --list | grep -c '^rc'')"
-    echo $linesWithRC; exit 1
+    # Clean
+    echo $linesWithRC
     if (( $linesWithRC > 0 )); then
-		executeCMD "dpkg -l | grep ^rc | awk '{ print $2}' | sudo xargs dpkg --purge"
+		executeCMD "dpkg -l | grep ^rc | awk '{ print \$2}' | sudo xargs dpkg --purge"
+        return $?
 	fi
-    return $?
+    return $_SUCCESS_
 }
 
 # Update APT repository
@@ -58,6 +47,10 @@ function updateAPT() {
 
 # Upgrade APT System
 function upgradeAPT() {
+    local error_code=$_SUCCESS_
+    local upgradableApp
+
+    # Validate
     dependencyAPPS apt
     exitError $?
 
@@ -65,13 +58,28 @@ function upgradeAPT() {
 
 	# Upgrade System
 	while [ 1 ]; do
-        local upgradableApp=$(sudo apt list --upgradable | grep -c .)
+        upgradableApp=$(executeCMD "sudo apt list --upgradable | grep -c ." 1)
+        error_code=$?
+        (( $error_code > $_SUCCESS_ )) && {
+            printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
+            return $error_code
+        }
+        
 		# Check if have new package
 		if (( upgradableApp < 2 )); then
 			break
 		fi
+
+        # Upgrade
         executeCMD "sudo apt upgrade -y"
+        error_code=$?
+        (( $error_code > $_SUCCESS_ )) && {
+            printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
+            return $error_code
+        }
 	done
+    printMessages "DONE" 1
+    return $_SUCCESS_
 }
 
 # Get List of App APT Installed
@@ -95,6 +103,8 @@ function repositoryAPT() {
     local runUpdate=0
     local errorPPA
     local countFail=0
+    local existPPA
+    local cmdRun
 
     dependencyAPPS apt
     exitError $?
@@ -108,21 +118,21 @@ function repositoryAPT() {
             cmd="sudo add-apt-repository -r ppa:%REPOSITORY% -y"
             errorPPA="UNINSTALL FAIL REPOSITORY: "
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
     esac
 
     for repository in "$@"; do
         if [ ! -z "$(echo "$repository" | cut -d ":" -f2)" ]; then
             ppa="$(echo "$repository" | cut -d ":" -f2)"
         fi
-        local existPPA=$(grep "^deb .*$repository" /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -c .)
-        local cmdRun="${cmd/\%REPOSITORY\%/$repository}"
+        existPPA=$(grep "^deb .*$repository" /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -c .)
+        cmdRun="${cmd/\%REPOSITORY\%/$repository}"
 
         case "$operation" in
             i)
                 (( $existPPA == 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > 0 )) && {
+                    (( $? > $_SUCCESS_ )) && {
                         printMessages "Error on install $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
@@ -132,7 +142,7 @@ function repositoryAPT() {
             u)
                 (( $existPPA > 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > 0 )) && {
+                    (( $? > $_SUCCESS_ )) && {
                         printMessages "Error on uninstall $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
@@ -143,8 +153,13 @@ function repositoryAPT() {
     done
 
     # Update Lib APT
-    if (( $runUpdate > 0 )); then updateAPT; fi
-    (( $countFail > 0 )) && printMessages "$errorPPA" 2
+    (( $runUpdate > $_SUCCESS_ )) && {
+        updateAPT
+        local error_code=$?
+        (( $error_code > $_SUCCESS_ )) && return $error_code
+    }
+    (( $countFail > 0 )) && printMessages "$errorPPA" 2; return $_EXIT_ERROR_
+    return $_SUCCESS_
 }
 
 # Install/Uninstall APT APP
@@ -170,7 +185,7 @@ function appAPT() {
             cmd="sudo apt purge --auto-remove %APP% -y && sudo apt clean %APP%"
             errorAPP="UNINSTALL FAIL APP: "
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
     esac
 
     for app in "$@"; do
@@ -181,7 +196,7 @@ function appAPT() {
             i|i-no-recommends)
                 (( $isInstalled == 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > 0 )) && {
+                    (( $? > $_SUCCESS_ )) && {
                         printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -191,7 +206,7 @@ function appAPT() {
             u)
                 (( $isInstalled > 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > 0 )) && {
+                    (( $? > $_SUCCESS_ )) && {
                         printMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -200,7 +215,8 @@ function appAPT() {
             ;;
         esac
     done
-    (( $countFail > 0 )) && printMessages "$errorAPP" 2
+    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_EXIT_ERROR_
+    return $_SUCCESS_
 }
 
 : '
@@ -220,14 +236,15 @@ function debFiles() {
         local cmdRun="${cmd/\%APP\%/$app}"
         (( $isInstalled == 0 )) && {
             executeCMD "$cmdRun"
-            (( $? > 0 )) && {
+            (( $? > $_SUCCESS_ )) && {
                 printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                 errorDEB="$errorDEB $ppa; "
                 countFail=$((countFail+1))
             } || printMessages "$app installed" 1
         } || printMessages "APP $app already installed!!!" 2
     done
-    (( $countFail > 0 )) && printMessages "$errorDEB" 2
+    (( $countFail > 0 )) && printMessages "$errorDEB" 2; return $_EXIT_ERROR_
+    return $_SUCCESS_
 }
 
 # Install RPM Files
@@ -244,14 +261,15 @@ function rpmFiles() {
         local cmdRun="${cmd/\%APP\%/$app}"
         (( $isInstalled == 0 )) && {
             executeCMD "$cmdRun"
-            (( $? > 0 )) && {
+            (( $? > $_SUCCESS_ )) && {
                 printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                 errorRPM="$errorRPM $ppa; "
                 countFail=$((countFail+1))
             } || printMessages "$app installed" 1
         } || printMessages "APP $app already installed!!!" 2
     done
-    (( $countFail > 0 )) && printMessages "$errorRPM" 2
+    (( $countFail > 0 )) && printMessages "$errorRPM" 2; return $_EXIT_ERROR_
+    return $_SUCCESS_
 }
 
 # Install Gnome Shell Extension
@@ -268,16 +286,24 @@ function gnomeShellExtensions() {
     for extension in "$@"; do
         uuid="$(unzip -c "$zipFile" metadata.json | grep uuid | cut -d \" -f4)"
         if [ ! -z $uuid ]; then
+            local error_code
             # Create extension path
             executeCMD "mkdir -p \"$extensionsPath/$uuid\""
+            $error_code=$?
 
             # Extract zip Extension data
-            executeCMD "unzip -q \"$extension\" -d \"$extensionsPath/$uuid/\""
+            (( $error_code < $_EXIT_ERROR_ )) && {
+                executeCMD "unzip -q \"$extension\" -d \"$extensionsPath/$uuid/\""
+                error_code=$?
 
-            # Install extension
-            executeCMD "gnome-shell-extension-tool -e \"$uuid\""
+                # Install extension
+                (( $error_code < $_EXIT_ERROR_ )) && {
+                    executeCMD "gnome-shell-extension-tool -e \"$uuid\""
+                    $error_code=$?
+                }
+            }
 
-            (( $? > 0 )) && {
+            (( $error_code > $_SUCCESS_ )) && {
                 printMessages "Error on install $extension" 4 ${FUNCNAME[0]}
                 errorGNOME_EXT="$errorGNOME_EXT $extension; "
                 countFail=$((countFail+1))
@@ -286,7 +312,8 @@ function gnomeShellExtensions() {
             printMessages "ERROR: Failed on get UUID from extension: $extension" 4
         fi
     done
-    (( $countFail > 0 )) && printMessages "$errorGNOME_EXT" 2
+    (( $countFail > 0 )) && printMessages "$errorGNOME_EXT" 2; return $_EXIT_ERROR_
+    return $_SUCCESS_
 }
 
 : '
@@ -336,22 +363,25 @@ function appSNAP() {
             cmd="sudo snap remove %APP%"
             errorAPP="UNINSTALL FAIL APP: "
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
     esac
 
     for app in "$@"; do
         local isInstalled=$(installedSNAP $app | grep -c .)
         local cmdRun="${cmd/\%APP\%/$app}"
+        local error_code
 
         case "$operation" in
             i|i-classic)
                 (( $isInstalled == 0 )) && {
                     if [ "$operation" = "i-classic" ]; then
                         executeCMD "$cmdRun --classic"
+                        error_code=$?
                     else
                         executeCMD "$cmdRun"
+                        error_code=$?
                     fi
-                    (( $? > 0 )) && {
+                    (( $error_code > $_SUCCESS_ )) && {
                         printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -361,7 +391,7 @@ function appSNAP() {
             u)
                 (( $isInstalled > 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > 0 )) && {
+                    (( $? > $_SUCCESS_ )) && {
                         printMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -370,7 +400,8 @@ function appSNAP() {
             ;;
         esac
     done
-    (( $countFail > 0 )) && printMessages "$errorAPP" 2
+    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_EXIT_ERROR_
+    return $_SUCCESS_
 }
 
 : '
@@ -423,7 +454,7 @@ function repositoryFLATPAK() {
             cmd="${cmd} || torsocks ${cmd}"
             errorPPA="UNINSTALL FAIL REPOSITORY: "
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
     esac
 
     for repository in "$@"; do
@@ -434,7 +465,7 @@ function repositoryFLATPAK() {
             i)
                 (( $existPPA == 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > 0 )) && {
+                    (( $? > $_SUCCESS_ )) && {
                         printMessages "Error on install $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
@@ -444,7 +475,7 @@ function repositoryFLATPAK() {
             u)
                 (( $existPPA > 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > 0 )) && {
+                    (( $? > $_SUCCESS_ )) && {
                         printMessages "Error on uninstall $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
@@ -455,8 +486,8 @@ function repositoryFLATPAK() {
     done
 
     # Update Lib
-    if (( $runUpdate > 0 )); then updateFLATPAK; fi
-    (( $countFail > 0 )) && printMessages "$errorPPA" 2
+    (( $runUpdate > 0 )) && updateFLATPAK
+    (( $countFail > 0 )) && printMessages "$errorPPA" 2; return $_EXIT_ERROR_
 }
 
 # Install FLATPAK APP
@@ -480,7 +511,7 @@ function appFLATPAK() {
             cmd="${cmd} || torsocks ${cmd}"
             errorAPP="UNINSTALL FAIL APP: "
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
     esac
 
     for app in "$@"; do
@@ -491,7 +522,7 @@ function appFLATPAK() {
             i)
                 (( $isInstalled == 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > 0 )) && {
+                    (( $? > $_SUCCESS_ )) && {
                         printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -501,7 +532,7 @@ function appFLATPAK() {
             u)
                 (( $isInstalled > 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > 0 )) && {
+                    (( $? > $_SUCCESS_ )) && {
                         printMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -510,7 +541,8 @@ function appFLATPAK() {
             ;;
         esac
     done
-    (( $countFail > 0 )) && printMessages "$errorAPP" 2
+    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_EXIT_ERROR_
+    return $_SUCCESS_
 }
 
 : '
@@ -544,7 +576,7 @@ function upgradeSystem() {
     local validArguments=0
     case "$1" in
         apt|snap|flatpak|all) validArguments=1 ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $EXIT_ERROR ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
     esac
     
     dependencyAPPS apt
@@ -684,7 +716,9 @@ function createNormalDesktop() {
 declare _OPERATIONS_APT_="$1"; shift
 case "$_OPERATIONS_APT_" in
     # APT
+    apt-clean) cleanSystemAPT ;;
     apt-update) updateAPT ;;
+    apt-upgrade) upgradeAPT ;;
     apt-installed) installedAPT "$@" ;;
     apt-repository) repositoryAPT "$@" ;;
     apt-app) appAPT "$@" ;;

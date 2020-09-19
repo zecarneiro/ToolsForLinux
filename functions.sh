@@ -35,38 +35,6 @@ function checkGraphicVendor(){
     fi
 }
 
-# Check if directory exist
-function existDir(){
-	local name="$1"
-	local -i response
-
-	# Check if is dir
-	if [ -d "$name" ]; then
-        response=1
-    else
-        response=0
-    fi
-
-	# Return response
-	echo $response
-}
-
-# Check if file exist
-function existFile(){
-	local name="$1"
-	local -i response
-
-	# Check if is dir
-    if [ -f "$name" ]; then
-        response=1
-    else
-        response=0
-    fi
-
-	# Return response
-	echo $response
-}
-
 # Delete File
 function removeFile(){
     local name="$1"
