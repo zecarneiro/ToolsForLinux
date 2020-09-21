@@ -66,6 +66,45 @@ function emptyFilesDirectory() {
     return $_CODE_EXIT_SUCCESS_
 }
 
+: '
+    Create Symbolic Link for an file
+
+    ARGS:
+    file = $1
+'
+function createShortcuts() {
+    local file="$1"
+    local nameFile=''
+    local errorcode
+
+    printMessages "Create symbolic links for: $file" 3
+
+    if [ -n "$file" ]; then        
+        if [ -f "$file" ]||[ -d "$file" ]; then
+            nameFile="$(basename "$file")" # Get name of file
+            if [ -n "$nameFile" ]; then
+                ln -sf "$file" "${nameFile}_shortcuts" || sudo ln -sf "$file" "${nameFile}_shortcuts"
+                errorcode=$?
+                (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
+                    printMessages "Operations fail" 4 "${FUNCNAME[0]}"
+                    return $_CODE_EXIT_ERROR_
+                }
+            else
+                printMessages "Invalid File name" 4 "${FUNCNAME[0]}"
+                return $_CODE_EXIT_ERROR_
+            fi
+        else
+            printMessages "File or Dir not exist!!" 4 "${FUNCNAME[0]}"
+            return $_CODE_EXIT_ERROR_
+        fi
+    else
+        printMessages "Invalid File inserted" 4 "${FUNCNAME[0]}"
+        return $_CODE_EXIT_ERROR_
+    fi
+    printMessages "Done" 1
+    return $_CODE_EXIT_SUCCESS_
+}
+
 # Dowload any data from link
 : ' function downloadFromLink() {
 	local link="$1"
@@ -174,6 +213,8 @@ function HELP() {
     echo -e "$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[2]} <subcommand>\n\nSubcommand:"
     data+=("\"move-to-main-folder [MAIN_FOLDER]\"" "\"Move all files to main folder. Main folder is OPTIONAL\"")
     data+=("\"empty [f/d list/delete]\"" "\"List/Delete Empty Files or Directory\"")
+    data+=("\"create-shortcuts [FILE]\"" "\"Create Symbolic Link for an file\"")
+    
     data+=("%EMPTY_LINE%")
     data+=("help" "Help")
 
@@ -184,6 +225,7 @@ declare _OPERATIONS_APT_="$1"; shift
 case "$_OPERATIONS_APT_" in
     move-to-main-folder) moveAllToMainFolder "$@" ;;
     empty) emptyFilesDirectory "$@" ;;
+    create-shortcuts) createShortcuts "$@" ;;
     help) HELP ;;
     *)
         messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[2]} help"

@@ -48,7 +48,7 @@ _Others_completions() {
 
 _Files_completions() {
     local sugestions=""
-    local -a filesArgs=("move-to-main-folder" "empty" "help")
+    local -a filesArgs=("move-to-main-folder" "empty" "create-shortcuts" "help")
 
     case $COMP_CWORD in
         2)
