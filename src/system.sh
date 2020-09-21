@@ -4,39 +4,40 @@
 : '
 ####################### APT AREA #######################
 '
+# Clear all APT app data and uninstall unecessary apt apps
 function cleanSystemAPT() {
     local -i linesWithRC
+    local listDPKG
+    local errorcode
     local homeDir="$(echo $HOME)"
 
     printMessages "Clean System for APT" 3
 
-    dependencyAPPS apt
+    validateDependencies apt
     exitError $?
 
     executeCMD "sudo apt autoremove -y"
     exitError $?
-    #dpkg --list
-    data='oi r1 jjj \nrc ggg aaa\naaaa tttt rca'
-    linesWithRC=$( echo -e "$data" )
-    echo $?
-    echo $linesWithRC; exit 1 
-    (( $? > $_SUCCESS_ )) && {
+    
+    listDPKG="$( executeCMD "dpkg --list" 1 )"
+    errorcode=$?
+    (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
         printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
-        return $_EXIT_ERROR_
-    }
+        return $errorcode
+    }    
 
     # Clean
-    echo $linesWithRC
+    linesWithRC="$(echo "$listDPKG" | grep -c ^rc )"
     if (( $linesWithRC > 0 )); then
-		executeCMD "dpkg -l | grep ^rc | awk '{ print \$2}' | sudo xargs dpkg --purge"
+		dpkg -l | grep ^rc | awk '{ print $2}' | sudo xargs dpkg --purge
         return $?
 	fi
-    return $_SUCCESS_
+    return $_CODE_EXIT_SUCCESS_
 }
 
 # Update APT repository
 function updateAPT() {
-    dependencyAPPS apt
+    validateDependencies apt
     exitError $?
 
     printMessages "Update Repository APT" 3
@@ -47,44 +48,52 @@ function updateAPT() {
 
 # Upgrade APT System
 function upgradeAPT() {
-    local error_code=$_SUCCESS_
+    local errorcode
     local upgradableApp
+    local -i countUpgradableApp
 
     # Validate
-    dependencyAPPS apt
+    validateDependencies apt
     exitError $?
 
     printMessages "Upgrade APP APT" 3
 
 	# Upgrade System
 	while [ 1 ]; do
-        upgradableApp=$(executeCMD "sudo apt list --upgradable | grep -c ." 1)
-        error_code=$?
-        (( $error_code > $_SUCCESS_ )) && {
+        upgradableApp=$(executeCMD "sudo apt list --upgradable" 1)
+        errorcode=$?
+        (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
             printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
-            return $error_code
+            return $errorcode
         }
         
 		# Check if have new package
-		if (( upgradableApp < 2 )); then
+        countUpgradableApp="$( echo "$upgradableApp" | grep -c . )"
+		if (( countUpgradableApp < 2 )); then
 			break
 		fi
 
         # Upgrade
         executeCMD "sudo apt upgrade -y"
-        error_code=$?
-        (( $error_code > $_SUCCESS_ )) && {
+        errorcode=$?
+        (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
             printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
-            return $error_code
+            return $errorcode
         }
 	done
     printMessages "DONE" 1
-    return $_SUCCESS_
+    return $_CODE_EXIT_SUCCESS_
 }
 
-# Get List of App APT Installed
+# 
+: '
+    Get List of App APT Installed
+
+    ARGS:
+    app =       $1  (OPTIONAL)
+'
 function installedAPT() {
-    dependencyAPPS apt
+    validateDependencies apt
     exitError $?
 
     [[ -z "$1" ]] && {
@@ -96,7 +105,13 @@ function installedAPT() {
     }
 }
 
-# Install/Uninstall APT PPA
+: '
+    Install/Uninstall APT PPA
+
+    ARGS:
+    operation =     $1      (i|u)
+    ppa =           $@
+'
 function repositoryAPT() {
     local operation="$1"; shift
     local cmd
@@ -106,19 +121,19 @@ function repositoryAPT() {
     local existPPA
     local cmdRun
 
-    dependencyAPPS apt
+    validateDependencies apt
     exitError $?
 
     case "$operation" in
         i)
-            cmd="sudo add-apt-repository ppa:%REPOSITORY% -y"
+            cmd="sudo add-apt-repository ppa:%REPOSITORY% -y --no-update"
             errorPPA="INSTALL FAIL REPOSITORY: "
         ;;
         u)
             cmd="sudo add-apt-repository -r ppa:%REPOSITORY% -y"
             errorPPA="UNINSTALL FAIL REPOSITORY: "
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_CODE_EXIT_ERROR_ ;;
     esac
 
     for repository in "$@"; do
@@ -132,7 +147,7 @@ function repositoryAPT() {
             i)
                 (( $existPPA == 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > $_SUCCESS_ )) && {
+                    (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         printMessages "Error on install $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
@@ -142,7 +157,7 @@ function repositoryAPT() {
             u)
                 (( $existPPA > 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > $_SUCCESS_ )) && {
+                    (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         printMessages "Error on uninstall $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
@@ -153,23 +168,29 @@ function repositoryAPT() {
     done
 
     # Update Lib APT
-    (( $runUpdate > $_SUCCESS_ )) && {
+    (( $runUpdate == 1 )) && {
         updateAPT
-        local error_code=$?
-        (( $error_code > $_SUCCESS_ )) && return $error_code
+        local errorcode=$?
+        (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && return $errorcode
     }
-    (( $countFail > 0 )) && printMessages "$errorPPA" 2; return $_EXIT_ERROR_
-    return $_SUCCESS_
+    (( $countFail > 0 )) && printMessages "$errorPPA" 2; return $_CODE_EXIT_ERROR_
+    return $_CODE_EXIT_SUCCESS_
 }
 
-# Install/Uninstall APT APP
+: '
+    Install/Uninstall APT APP
+
+    ARGS:
+    operation =     $1      (i|u)
+    apps =          $@
+'
 function appAPT() {
     local operation="$1"; shift
     local cmd
     local errorAPP
     local countFail=0
 
-    dependencyAPPS apt
+    validateDependencies apt
     exitError $?
 
     case "$operation" in
@@ -185,7 +206,7 @@ function appAPT() {
             cmd="sudo apt purge --auto-remove %APP% -y && sudo apt clean %APP%"
             errorAPP="UNINSTALL FAIL APP: "
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_CODE_EXIT_ERROR_ ;;
     esac
 
     for app in "$@"; do
@@ -196,7 +217,7 @@ function appAPT() {
             i|i-no-recommends)
                 (( $isInstalled == 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > $_SUCCESS_ )) && {
+                    (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -206,7 +227,7 @@ function appAPT() {
             u)
                 (( $isInstalled > 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > $_SUCCESS_ )) && {
+                    (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         printMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -215,20 +236,25 @@ function appAPT() {
             ;;
         esac
     done
-    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_EXIT_ERROR_
-    return $_SUCCESS_
+    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_CODE_EXIT_ERROR_
+    return $_CODE_EXIT_SUCCESS_
 }
 
 : '
 ####################### DEB/RPM/GNOME_SHELL_EXT AREA #######################
 '
-# Install DEB Files
+: '
+    Install DEB Files
+
+    ARGS:
+    deb =          $@
+'
 function debFiles() {
     local errorDEB="INSTALL FAIL DEB: "
     local countFail=0
     local cmd="sudo gdebi -n %APP%"
 
-    dependencyAPPS deb
+    validateDependencies deb
     exitError $?
 
     for app in "$@"; do
@@ -236,24 +262,29 @@ function debFiles() {
         local cmdRun="${cmd/\%APP\%/$app}"
         (( $isInstalled == 0 )) && {
             executeCMD "$cmdRun"
-            (( $? > $_SUCCESS_ )) && {
+            (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                 printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                 errorDEB="$errorDEB $ppa; "
                 countFail=$((countFail+1))
             } || printMessages "$app installed" 1
         } || printMessages "APP $app already installed!!!" 2
     done
-    (( $countFail > 0 )) && printMessages "$errorDEB" 2; return $_EXIT_ERROR_
-    return $_SUCCESS_
+    (( $countFail > 0 )) && printMessages "$errorDEB" 2; return $_CODE_EXIT_ERROR_
+    return $_CODE_EXIT_SUCCESS_
 }
 
-# Install RPM Files
+: '
+    Install RPM Files
+
+    ARGS:
+    rpm =          $@
+'
 function rpmFiles() {
     local errorRPM="INSTALL FAIL RPM: "
     local countFail=0
     local cmd="sudo alien -i %APP%"
 
-    dependencyAPPS rpm
+    validateDependencies rpm
     exitError $?
 
 	for app in "$@"; do
@@ -261,18 +292,23 @@ function rpmFiles() {
         local cmdRun="${cmd/\%APP\%/$app}"
         (( $isInstalled == 0 )) && {
             executeCMD "$cmdRun"
-            (( $? > $_SUCCESS_ )) && {
+            (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                 printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                 errorRPM="$errorRPM $ppa; "
                 countFail=$((countFail+1))
             } || printMessages "$app installed" 1
         } || printMessages "APP $app already installed!!!" 2
     done
-    (( $countFail > 0 )) && printMessages "$errorRPM" 2; return $_EXIT_ERROR_
-    return $_SUCCESS_
+    (( $countFail > 0 )) && printMessages "$errorRPM" 2; return $_CODE_EXIT_ERROR_
+    return $_CODE_EXIT_SUCCESS_
 }
 
-# Install Gnome Shell Extension
+: '
+    Install Gnome Shell Extension
+
+    ARGS:
+    gnome_shell_ext =          $@
+'
 function gnomeShellExtensions() {
     local errorGNOME_EXT="INSTALL FAIL GNOME EXTENSION: "
     local homePath="$(echo $HOME)"
@@ -280,30 +316,31 @@ function gnomeShellExtensions() {
     local uuid=""
     local countFail=0
 
-    dependencyAPPS gnome-shell-ext
+    validateDependencies gnome-shell-ext
     exitError $?
 
+    # TODO: Validate error code for unzip and gnome-shell-extension-tool
     for extension in "$@"; do
-        uuid="$(unzip -c "$zipFile" metadata.json | grep uuid | cut -d \" -f4)"
+        uuid="$(unzip -c "$extension" metadata.json | grep uuid | cut -d \" -f4)"
         if [ ! -z $uuid ]; then
-            local error_code
+            local errorcode
             # Create extension path
             executeCMD "mkdir -p \"$extensionsPath/$uuid\""
-            $error_code=$?
+            errorcode=$?
 
             # Extract zip Extension data
-            (( $error_code < $_EXIT_ERROR_ )) && {
+            (( $errorcode < $_CODE_EXIT_ERROR_ )) && {
                 executeCMD "unzip -q \"$extension\" -d \"$extensionsPath/$uuid/\""
-                error_code=$?
+                errorcode=$?
 
                 # Install extension
-                (( $error_code < $_EXIT_ERROR_ )) && {
+                (( $errorcode < $_CODE_EXIT_ERROR_ )) && {
                     executeCMD "gnome-shell-extension-tool -e \"$uuid\""
-                    $error_code=$?
+                    errorcode=$?
                 }
             }
 
-            (( $error_code > $_SUCCESS_ )) && {
+            (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
                 printMessages "Error on install $extension" 4 ${FUNCNAME[0]}
                 errorGNOME_EXT="$errorGNOME_EXT $extension; "
                 countFail=$((countFail+1))
@@ -312,8 +349,8 @@ function gnomeShellExtensions() {
             printMessages "ERROR: Failed on get UUID from extension: $extension" 4
         fi
     done
-    (( $countFail > 0 )) && printMessages "$errorGNOME_EXT" 2; return $_EXIT_ERROR_
-    return $_SUCCESS_
+    (( $countFail > 0 )) && printMessages "$errorGNOME_EXT" 2; return $_CODE_EXIT_ERROR_
+    return $_CODE_EXIT_SUCCESS_
 }
 
 : '
@@ -321,7 +358,7 @@ function gnomeShellExtensions() {
 '
 # Update Snap repository
 function updateSNAP() {
-    dependencyAPPS snap
+    validateDependencies snap
     exitError $?
 
     printMessages "Update/Upgrade Repository/APP SNAP" 3
@@ -330,9 +367,14 @@ function updateSNAP() {
 	return $?
 }
 
-# Get List of App SNAP Installed
+: '
+    Get List of App SNAP Installed
+
+    ARGS:
+    app =       $1      (OPTIONAL)
+'
 function installedSNAP() {
-    dependencyAPPS snap
+    validateDependencies snap
     exitError $?
 
     [[ -z "$1" ]] && {
@@ -344,14 +386,20 @@ function installedSNAP() {
     }
 }
 
-# Install/Uninstall SNAP APP
+: '
+    Install/Uninstall SNAP APP
+
+    ARGS:
+    operation =       $1      (i|i-classic|u)
+    apps =            $@
+'
 function appSNAP() {
     local operation="$1"; shift
     local cmd
     local errorAPP
     local countFail=0
 
-    dependencyAPPS snap
+    validateDependencies snap
     exitError $?
 
     case "$operation" in
@@ -363,25 +411,26 @@ function appSNAP() {
             cmd="sudo snap remove %APP%"
             errorAPP="UNINSTALL FAIL APP: "
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_CODE_EXIT_ERROR_ ;;
     esac
 
+    # TODO: Validate error code for snap
     for app in "$@"; do
         local isInstalled=$(installedSNAP $app | grep -c .)
         local cmdRun="${cmd/\%APP\%/$app}"
-        local error_code
+        local errorcode
 
         case "$operation" in
             i|i-classic)
                 (( $isInstalled == 0 )) && {
                     if [ "$operation" = "i-classic" ]; then
                         executeCMD "$cmdRun --classic"
-                        error_code=$?
+                        errorcode=$?
                     else
                         executeCMD "$cmdRun"
-                        error_code=$?
+                        errorcode=$?
                     fi
-                    (( $error_code > $_SUCCESS_ )) && {
+                    (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
                         printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -391,7 +440,7 @@ function appSNAP() {
             u)
                 (( $isInstalled > 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > $_SUCCESS_ )) && {
+                    (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         printMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -400,16 +449,16 @@ function appSNAP() {
             ;;
         esac
     done
-    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_EXIT_ERROR_
-    return $_SUCCESS_
+    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_CODE_EXIT_ERROR_
+    return $_CODE_EXIT_SUCCESS_
 }
 
 : '
 ####################### FLATPAK AREA #######################
 '
-# Update FLATPAK repository
+# Update/Upgrade Repository
 function updateFLATPAK() {
-    dependencyAPPS flatpak
+    validateDependencies flatpak
     exitError $?
 
     printMessages "Update/Upgrade Repository/APP FLATPAK" 3
@@ -418,9 +467,14 @@ function updateFLATPAK() {
 	return $?
 }
 
-# Get List of App FLATPAK Installed
+: '
+    Get List of App FLATPAK Installed
+
+    ARGS:
+    app =       $1      (OPTIONAL)
+'
 function installedFLATPAK() {
-    dependencyAPPS flatpak
+    validateDependencies flatpak
     exitError $?
 
     [[ -z "$1" ]] && {
@@ -432,7 +486,13 @@ function installedFLATPAK() {
     }
 }
 
-# Install/Uninstall FLATPAK APP
+: '
+    Install/Uninstall FLATPAK Repository
+
+    ARGS:
+    operation =     $1      (i|u)
+    repository =    $@
+'
 function repositoryFLATPAK() {
     local operation="$1"; shift
     local cmd
@@ -440,7 +500,7 @@ function repositoryFLATPAK() {
     local errorPPA
     local countFail=0
 
-    dependencyAPPS flatpak
+    validateDependencies flatpak
     exitError $?
 
     case "$operation" in
@@ -454,9 +514,10 @@ function repositoryFLATPAK() {
             cmd="${cmd} || torsocks ${cmd}"
             errorPPA="UNINSTALL FAIL REPOSITORY: "
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_CODE_EXIT_ERROR_ ;;
     esac
 
+    # TODO: Validate error code for flatpak
     for repository in "$@"; do
         local existPPA=$(flatpak remote-list | awk '{if (NR!=0) {print $1}}' | grep -i "$repository" | grep -c .)
         local cmdRun="${cmd/\%REPOSITORY\%/$repository}"
@@ -465,7 +526,7 @@ function repositoryFLATPAK() {
             i)
                 (( $existPPA == 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > $_SUCCESS_ )) && {
+                    (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         printMessages "Error on install $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
@@ -475,7 +536,7 @@ function repositoryFLATPAK() {
             u)
                 (( $existPPA > 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > $_SUCCESS_ )) && {
+                    (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         printMessages "Error on uninstall $repository" 4 "${FUNCNAME[0]}"
                         errorPPA="$errorPPA $repository; "
                         countFail=$((countFail+1))
@@ -487,17 +548,23 @@ function repositoryFLATPAK() {
 
     # Update Lib
     (( $runUpdate > 0 )) && updateFLATPAK
-    (( $countFail > 0 )) && printMessages "$errorPPA" 2; return $_EXIT_ERROR_
+    (( $countFail > 0 )) && printMessages "$errorPPA" 2; return $_CODE_EXIT_ERROR_
 }
 
-# Install FLATPAK APP
+: '
+    Install/Uninstall FLATPAK APP
+
+    ARGS:
+    operation =     $1      (i|u)
+    app =           $@
+'
 function appFLATPAK() {
     local operation="$1"; shift
     local cmd
     local errorAPP
     local countFail=0
 
-    dependencyAPPS flatpak
+    validateDependencies flatpak
     exitError $?
 
     case "$operation" in
@@ -511,9 +578,10 @@ function appFLATPAK() {
             cmd="${cmd} || torsocks ${cmd}"
             errorAPP="UNINSTALL FAIL APP: "
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_CODE_EXIT_ERROR_ ;;
     esac
 
+    # TODO: Validate error code for flatpak
     for app in "$@"; do
         local isInstalled=$(installedFLATPAK $app | grep -c .)
         local cmdRun="${cmd/\%APP\%/$app}"
@@ -522,7 +590,7 @@ function appFLATPAK() {
             i)
                 (( $isInstalled == 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > $_SUCCESS_ )) && {
+                    (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         printMessages "Error on install $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -532,7 +600,7 @@ function appFLATPAK() {
             u)
                 (( $isInstalled > 0 )) && {
                     executeCMD "$cmdRun"
-                    (( $? > $_SUCCESS_ )) && {
+                    (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         printMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app; "
                         countFail=$((countFail+1))
@@ -541,8 +609,8 @@ function appFLATPAK() {
             ;;
         esac
     done
-    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_EXIT_ERROR_
-    return $_SUCCESS_
+    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_CODE_EXIT_ERROR_
+    return $_CODE_EXIT_SUCCESS_
 }
 
 : '
@@ -553,16 +621,13 @@ function fixLocalePackage() {
     local errorCode=0
     local localeLang
     local language_all_package
-    local -a dependencies=("locale" "check-language-support")
 
-    for dependency in "${dependencies[@]}"; do
-        isCommandExist "$dependency"
-        errorCode=$?
-        (( $errorCode > 0 )) && {
-            printMessages "Install language-selector-common" 4 "${FUNCNAME[0]}"
-            exitError "$errorCode"
-        }
-    done
+    validateDependencies "locale-package"
+    errorCode=$?
+    (( $errorCode > $_CODE_EXIT_SUCCESS_ )) && {
+        printMessages "Install language-selector-common" 4 "${FUNCNAME[0]}"
+        exitError "$errorCode"
+    }
     
     printMessages "Fix Locale Package" 3
 	localeLang="$(locale | grep LANGUAGE | cut -d '=' -f2- | cut -d ':' -f1)"
@@ -572,14 +637,26 @@ function fixLocalePackage() {
     fi
 }
 
+# Reload Gnome Shell
+function reloadGnomeShell() {
+    killall -3 gnome-shell
+	(( $? > 0 )) && printMessages "Operations Fail" 4 ${FUNCNAME[0]} || printMessages "Done" 1
+}
+
+: '
+    Update/Upgrade all apps(APT/SNAP/FLATPAK)
+
+    ARGS:
+    type =     $1      (apt|snap|flatpak|all)
+'
 function upgradeSystem() {
     local validArguments=0
     case "$1" in
         apt|snap|flatpak|all) validArguments=1 ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_EXIT_ERROR_ ;;
+        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_CODE_EXIT_ERROR_ ;;
     esac
     
-    dependencyAPPS apt
+    validateDependencies apt
     exitError $?
 
     # Always execute update for APT
@@ -594,19 +671,43 @@ function upgradeSystem() {
 
     # Upgrade all APP SNAP
     if [ "$1" = "snap" ]||[ "$1" = "all" ]; then
-        dependencyAPPS snap
+        validateDependencies snap
         (( $? < 1 )) && updateSNAP
     fi
 
     # Upgrade all APP FLATPAK
     if [ "$1" = "flatpak" ]||[ "$1" = "all" ]; then
-        dependencyAPPS flatpak
+        validateDependencies flatpak
         (( $? < 1 )) && updateFLATPAK
     fi
     printMessages "DONE" 1
 }
 
-# Kill app with pid
+: '
+    Check service is active or not
+
+    ARGS:
+    name_service =      $1
+'
+function isServiceActive() {
+	local nameService="$1"
+	local -i isActive
+
+    [[ -z "$nameService" ]] && {
+        printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"
+        exitError $_CODE_EXIT_ERROR_
+    }
+
+    isActive=$(ps -e | grep -v grep | grep -c "$nameService")
+    (( $isActive >= 1 )) && echo $_TRUE_ || echo $_FALSE_
+}
+
+: '
+    Kill APP by PID
+
+    ARGS:
+    pid =      $1
+'
 function killPID() {
 	local pid="$1"
 	local -i existPID
@@ -639,78 +740,74 @@ function killPID() {
 	fi
 }
 
-# Create Boot Desktop files
-function createBootDesktop() {
-    local appName="$1"
-	local cmdToExec="$2"
-    local useTerminal="$3"
-	local icon="$4"
-    local extraLines="$5"
-    local autoStartApp="$home/.config/autostart"
-    local desktopFullPath="$autoStartApp/$appName.desktop"
-    local desktopFiletext
+: '
+	Check your Graphic vendor
 
-    # Create path
-    mkdir -p "$autoStartApp"
+	ARGS:
+	nameVendor = $1
+'
+function checkGraphicVendor() {
+    local nameVendor="$1"
+	local lspciData
+	local errorcode
+	local -i exist
 
-    # Auto start app
-    desktopFiletext="[Desktop Entry]"
-    desktopFiletext="$desktopFiletext\nType=Application"
-    desktopFiletext="$desktopFiletext\nExec=$cmdToExec"
-    desktopFiletext="$desktopFiletext\nIcon=$icon"
-    desktopFiletext="$desktopFiletext\nHidden=false"
-    desktopFiletext="$desktopFiletext\nNoDisplay=false"
+	lspciData="$(executeCMD "lspci -v" 1)"
+	errorcode=$?
+	(( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
+		printMessages "Operations Fail" 4 ${FUNCNAME[0]}
+		exitError $errorcode
+	}
 
-    # Define if use terminal or not
-    if [ $useTerminal -eq 1 ]; then
-        desktopFiletext="$desktopFiletext\nTerminal=true"
-    else
-        desktopFiletext="$desktopFiletext\nTerminal=false"
-    fi
-
-    desktopFiletext="$desktopFiletext\nX-GNOME-Autostart-enabled=true"
-    desktopFiletext="$desktopFiletext\nName[pt]=$appName"
-    desktopFiletext="$desktopFiletext\nName=$appName"
-    desktopFiletext="$desktopFiletext\nComment[pt]="
-    desktopFiletext="$desktopFiletext\nComment=\n"
-    desktopFiletext="$desktopFiletext\n$extraLines"
-    printf "$desktopFiletext" | tee "$desktopFullPath" > /dev/null
-    chmod +x "$desktopFullPath"
+    exist=$( echo "$lspciData" | grep -ci "$nameVendor" )
+	(( $exist > 0 )) && echo $_TRUE_ || echo $_FALSE_
 }
 
-# Create Normal Desktop files
-function createNormalDesktop() {
-	local appName="$1"
-	local cmdToExec="$2"
-    local useTerminal="$3"
-	local icon="$4"
-    local extraLines="$5"
-	local normalApp="$home/.local/share/applications"
-	local desktopFullPath="$normalApp/$appName.desktop"
-    local desktopFiletext
+: '
+####################### MAIN AREA #######################
+'
+function HELP() {
+    local data=()
+    export TOOLFORLINUX_TABLE_LENGTH_COLUMN="2"
+    export TOOLFORLINUX_TABLE_MAX_COLUMN_CHAR="50"
+	local -a data=()
 
-    # Create path
-    mkdir -p "$normalApp"
+    echo -e "$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[1]} <subcommand>\n\nSubcommand:"
+    data+=("apt-clean" "\"Clear all APT app data and uninstall unecessary apt apps\"")
+    data+=("apt-update" "\"Update APT repository\"")
+    data+=("apt-upgrade" "\"Upgrade APT System\"")
+    data+=("\"apt-installed [APP]\"" "\"Get List of App APT Installed. APP if present only this app\"")
+    data+=("\"apt-repository [i|u PPA1 PPA2...]\"" "\"Install/Uninstall APT PPA\"")
+    data+=("\"apt-app [i|u APP1 APP2...]\"" "\"Install/Uninstall APT APP\"")
 
-    # Normal App
-    desktopFiletext="[Desktop Entry]"
-    desktopFiletext="$desktopFiletext\nType=Application"
-    desktopFiletext="$desktopFiletext\nExec=$cmdToExec"
-    desktopFiletext="$desktopFiletext\nIcon=$icon"
+    data+=("%EMPTY_LINE%")
+    data+=("\"deb-files [DEB1 DEB2...]\"" "\"Install DEB Files\"")
+    data+=("\"rpm-files [RPM1 RPM2...]\"" "\"Install RPM Files\"")
+    data+=("\"gnome-shell-extensions [GSEXT1 GSEXT2...]\"" "\"Install Gnome Shell Extension\"")
+    
+    data+=("%EMPTY_LINE%")
+    data+=("snap-update" "\"Update Snap repository\"")
+    data+=("\"snap-installed [APP]\"" "\"Get List of App SNAP Installed. APP if present only this app\"")
+    data+=("\"snap-app [i|i-classic|u APP1 APP2...]\"" "\"Install/Uninstall SNAP APP\"")
 
-    # Define if use terminal or not
-    if [ $useTerminal -eq 1 ]; then
-        desktopFiletext="$desktopFiletext\nTerminal=true"
-    else
-        desktopFiletext="$desktopFiletext\nTerminal=false"
-    fi
+    data+=("%EMPTY_LINE%")
+    data+=("flatpak-update" "\"Update/Upgrade Repository\"")
+    data+=("\"flatpak-installed [APP]\"" "\"Get List of App FLATPAK Installed. APP if present only this app\"")
+    data+=("\"flatpak-repository [i|u REMOTE1 REMOTE2...]\"" "\"Install/Uninstall FLATPAK Repository\"")
+    data+=("\"flatpak-app [i|u APP1 APP2...]\"" "\"Install/Uninstall FLATPAK APP\"")
 
-    desktopFiletext="$desktopFiletext\nName[pt]=$appName"
-    desktopFiletext="$desktopFiletext\nName=$appName"
-    desktopFiletext="$desktopFiletext\nGenericName=$appName\n"
-    desktopFiletext="$desktopFiletext\n$extraLines"
-    printf "$desktopFiletext" | tee "$desktopFullPath" > /dev/null
-    chmod +x "$desktopFullPath"
+    data+=("%EMPTY_LINE%")
+    data+=("fix-locale-package" "\"Fix Locale Package\"")
+    data+=("reload-gnome-shell" "\"Reload Gnome Shell if present\"")
+    data+=("\"system-upgrade [apt|snap|flatpak|all]\"" "\"Update/Upgrade all apps(APT/SNAP/FLATPAK)\"")
+    data+=("\"is-service-active [service_name]\"" "\"Check service is active or not\"")
+    data+=("\"pid-kill [pid]\"" "\"Kill APP by PID\"")
+    data+=("\"check-graphic-vendor [GRAPHIC_VENDOR]\"" "\"Check if graphic vendor is installed\"")
+
+    data+=("%EMPTY_LINE%")
+    data+=("help" "Help")
+    
+    . "$_SRC_/${_SUBCOMMANDS_[1]}.sh" create-table ${data[@]}
 }
 
 declare _OPERATIONS_APT_="$1"; shift
@@ -740,7 +837,16 @@ case "$_OPERATIONS_APT_" in
     flatpak-app) appFLATPAK "$@" ;;
 
     # OTHERS
-    system-upgrade) upgradeSystem "$@" ;;
     fix-locale-package) fixLocalePackage ;;
+    reload-gnome-shell) reloadGnomeShell ;;
+    system-upgrade) upgradeSystem "$@" ;;
+    is-service-active) isServiceActive "$@" ;;
     pid-kill) killPID "$@" ;;
+    check-graphic-vendor) checkGraphicVendor "$@" ;;
+    help) HELP ;;
+    *)
+        messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[0]} help"
+        printMessages "${_MESSAGE_RUN_HELP_/\%MSG\%/$messageerror}" 4 "${FUNCNAME[0]}"
+        exitError $_CODE_EXIT_ERROR_
+    ;;
 esac

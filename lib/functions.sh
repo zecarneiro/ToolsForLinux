@@ -21,8 +21,8 @@ Print Messages by type with color. ARGS:
 function printMessages() {
     local msg="$1"
     local typeMSG="$2"
-    local functionName=""
-    [[ -z "$3" ]] || functionName="$3: "
+    local functionName=""    
+    [[ -n "$3" ]] && functionName="$3: "
 
     case "$typeMSG" in
         1) msg="${GREEN}${functionName}$msg${NOCOLOR}" ;;
@@ -47,7 +47,7 @@ function isCommandExist() {
         return 0
     } || {
         printMessages "COMMAND [$commands] could not be found" 2 $functionName
-        return $_EXIT_ERROR_
+        return $_CODE_EXIT_ERROR_
     }
 }
 
