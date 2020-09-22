@@ -9,10 +9,8 @@ declare -a _SUBCOMMANDS_=("system" "others" "files")
 
 # Import all necessary scripts
 . "$_LIB_/functions.sh"
-. "$_LIB_/colorForString.sh"
 . "$_LIB_/globalVariable.sh"
 . "$_LIB_/dependencies.sh"
-. "$_LIB_/exitReturnCode.sh"
 
 : '
 ####################### MAIN AREA #######################
