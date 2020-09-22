@@ -29,7 +29,7 @@ _System_completions() {
 _Others_completions() {
     local sugestions=""
     local -a othersArgs=("clear-screen" "to-binary" "cidr-calculator" "trim" "cut-string-by-separator")
-    othersArgs+=("exec-cmd-get-output" "create-table" "dconf" "help")
+    othersArgs+=("exec-cmd-get-output" "create-table" "dconf" "http-alias" "help")
 
     case $COMP_CWORD in
         2)
@@ -41,6 +41,7 @@ _Others_completions() {
             case "${COMP_WORDS[2]}" in
                 cut-string-by-separator) sugestions="l r" ;;
                 dconf) sugestions="backup restore reset" ;;
+                http-alias) sugestions="set unset" ;;
             esac
             COMPREPLY=( $(compgen -W "${sugestions}" -- "${COMP_WORDS[COMP_CWORD]}") )
         ;;

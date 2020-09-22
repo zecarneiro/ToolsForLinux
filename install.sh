@@ -36,8 +36,8 @@ echo -e "$INITIATOR Restart bashrc file"
 
 # Remove unecessary files
 echo -e "$INITIATOR Remove unecessary files"
-declare -a unecessary_files=("install.sh" ".git" ".gitattributes" "addRemHTTPHostAlias.sh" "gitUserInfo.sh")
-unecessary_files+=("mountDiskPartitionWSL.sh" "toolGitUserInfo.sh" "toolHTTPHostAlias.sh")
+declare -a unecessary_files=("install.sh" ".git" ".gitattributes" "gitUserInfo.sh")
+unecessary_files+=("mountDiskPartitionWSL.sh" "toolGitUserInfo.sh")
 for item in "${unecessary_files[@]}"; do
     sudo rm -r "$INSTALATION_FOLDER/$item"
 done

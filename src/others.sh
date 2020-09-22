@@ -247,12 +247,68 @@ function dconf() {
 }
 
 : '
+	Set/Unset Alias for HTTP host
+
+	ARGS:
+	type =		$1	(set|unset)
+	address =	$2
+	alias =		$1
+'
+function httpAlias() {
+	local hostFile="/etc/hosts"
+	local address="$2"
+	local alias="$3"
+	local -i restart_network=0
+
+	# Validate address
+	if [ -z "$address" ]; then
+		printMessages "Invalid address" 4 ${FUNCNAME[0]}
+		return $_CODE_EXIT_ERROR_
+	fi
+
+	# Validate alias
+	if [ -z "$alias" ]; then
+		printMessages "Invalid alias" 4 ${FUNCNAME[0]}
+		return $_CODE_EXIT_ERROR_
+	fi
+
+	case "$1" in
+		set)
+			echo "$address $alias" | sudo tee -a "$hostFile" > /dev/null
+			errorcode=$?
+			restart_network=1
+		;;
+		unset)
+			sudo sed -i "/$addressData $aliasData/d" "$hostFile"
+			errorcode=$?
+			restart_network=1
+		;;
+		*) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
+	esac
+	
+	(( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
+        printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
+        return $errorcode
+    }
+
+	(( $restart_network == 1 )) && {
+        sudo service network-manager restart
+		errorcode=$?
+		(( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
+			printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
+			return $errorcode
+		}
+    }
+	return $_CODE_EXIT_SUCCESS_
+}
+
+: '
 ####################### MAIN AREA #######################
 '
 function HELP() {
     local data=()
     export TOOLFORLINUX_TABLE_LENGTH_COLUMN="2"
-    export TOOLFORLINUX_TABLE_MAX_COLUMN_CHAR="50"
+    export TOOLFORLINUX_TABLE_MAX_COLUMN_CHAR="55"
 	local -a data=()
 
     echo -e "$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[1]} <subcommand>\n\nSubcommand:"
@@ -264,7 +320,9 @@ function HELP() {
 	data+=("\"exec-cmd-get-output [COMMAND]\"" "\"Execute command and print result\"")
 	data+=("\"create-table [DATA_1 DATA_2...]\"" "\"Print data in table format\"")
 	data+=("\"dconf [backup|restore|reset DCONF_PATH BACKUP_FILE]\"" "\"Backup/Load and Reset dconf data. If reset backup file is not necessary\"")
-    data+=("%EMPTY_LINE%")
+	data+=("\"http-alias [ADDRESS ALIAS]\"" "\"Set/Unset Alias for HTTP host\"")
+    
+	data+=("%EMPTY_LINE%")
     data+=("help" "Help")
 
     . "$_SRC_/${_SUBCOMMANDS_[1]}.sh" create-table ${data[@]}
@@ -280,6 +338,7 @@ case "$_OPERATIONS_APT_" in
 	exec-cmd-get-output) execCommandGetOutput "$@" ;;
 	create-table) createTable "$@" ;;
 	dconf) dconf "$@" ;;
+	http-alias) httpAlias "$@" ;;
 	help) HELP ;;
 	*)
         messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[1]} help"
