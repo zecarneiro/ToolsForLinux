@@ -279,7 +279,7 @@ function httpAlias() {
 			restart_network=1
 		;;
 		unset)
-			sudo sed -i "/$addressData $aliasData/d" "$hostFile"
+			sudo sed -i "/$address $alias/d" "$hostFile"
 			errorcode=$?
 			restart_network=1
 		;;
@@ -303,6 +303,76 @@ function httpAlias() {
 }
 
 : '
+	Upper/Lower an String
+
+	ARGS:
+	type =		$1	(upper|lower)
+	string =	$2
+'
+function upperLowerString() {
+	local stringData="$2"
+	local errorcode
+
+	if [ -z "$stringData" ]; then
+		printMessages "Invalid string inserted" 4 ${FUNCNAME[0]}
+		return $_CODE_EXIT_ERROR_
+	fi
+	
+	case "$1" in
+		upper) echo "$stringData" | tr '[a-z]' '[A-Z]'; errorcode=$? ;;
+		lower) echo "$stringData" | tr '[A-Z]' '[a-z]'; errorcode=$? ;;
+		*) printMessages "Invalid arguments" 4 ${FUNCNAME[0]}; return $_CODE_EXIT_ERROR_ ;;
+	esac
+	(( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
+        printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
+        return $errorcode
+    }
+	return $_CODE_EXIT_SUCCESS_
+}
+
+: '
+	Mount/Umount disk on WSL
+
+	ARGS:
+	type =			$1	(mount|umount)
+	letterDisk =	$2
+'
+function diskOnWSL() {
+	local letterDisk="${2%:}"
+	local mountLetterDir="$(upperLowerString lower "$letterDisk")"
+    local windowsLetter="$(upperLowerString upper "$letterDisk")"
+	local mountDir="/mnt"
+	local errorcode
+
+    # Validate Letter inserted
+    if [ ${#letterDisk} -ne 1 ]; then
+		msgerror="Invalid Letter of disk!!!"
+		msgerror="${messageerror}\nExample: $(basename "$0") OneAnyLetter\n$(basename "$0") E"
+        printMessages "$msgerror" 4 "${FUNCNAME[0]}"
+        return $_CODE_EXIT_ERROR_
+    fi
+
+	# Umount disk if already mounted
+	if [ "$1" = "mount" ]||[ "$1" = "umount" ]; then
+		sudo umount "$mountDir/$mountLetterDir"
+		errorcode=$?
+	fi
+
+	# Mount disk
+	if [ "$1" = "mount" ]; then
+		sudo mount -t drvfs "${windowsLetter}:" "$mountDir/$mountLetterDir"
+		errorcode=$?
+	fi
+
+	(( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
+        printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
+        return $errorcode
+    }
+	printMessages "Done" 1
+	return $_CODE_EXIT_SUCCESS_
+}
+
+: '
 ####################### MAIN AREA #######################
 '
 function HELP() {
@@ -321,6 +391,8 @@ function HELP() {
 	data+=("\"create-table [DATA_1 DATA_2...]\"" "\"Print data in table format\"")
 	data+=("\"dconf [backup|restore|reset DCONF_PATH BACKUP_FILE]\"" "\"Backup/Load and Reset dconf data. If reset backup file is not necessary\"")
 	data+=("\"http-alias [ADDRESS ALIAS]\"" "\"Set/Unset Alias for HTTP host\"")
+	data+=("\"upper-lower-string [upper|lower STRING]\"" "\"Upper/Lower an String\"")
+	data+=("\"disk-on-wsl [mount|umount LETTER_OF_DISK]\"" "\"Mount/Umount disk on WSL (IMPORTANT: Only work on WSL)\"")
     
 	data+=("%EMPTY_LINE%")
     data+=("help" "Help")
@@ -339,6 +411,8 @@ case "$_OPERATIONS_APT_" in
 	create-table) createTable "$@" ;;
 	dconf) dconf "$@" ;;
 	http-alias) httpAlias "$@" ;;
+	upper-lower-string) upperLowerString "$@" ;;
+	disk-on-wsl) diskOnWSL "$@" ;;
 	help) HELP ;;
 	*)
         messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[1]} help"
