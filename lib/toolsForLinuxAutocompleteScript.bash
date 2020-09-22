@@ -80,7 +80,7 @@ _Files_completions() {
 
 _ToolsForLinux_completions() {
     local sugestions=""
-    local -a toolsForLinuxArgs=("system" "others" "files" "install-dependencies")
+    local -a toolsForLinuxArgs=("system" "others" "files" "install-dependencies" "docs")
     toolsForLinuxArgs+=("help")
     (( $COMP_CWORD > 2 )) && newCompCWord=2 || newCompCWord=$COMP_CWORD
 
@@ -99,6 +99,11 @@ _ToolsForLinux_completions() {
             elif [ "${COMP_WORDS[1]}" = "${toolsForLinuxArgs[3]}" ]; then
                 (( $COMP_CWORD < 3 )) && {
                     sugestions="all apt deb rpm gnome-shell-ext snap flatpak locale-package dconf wget"
+                    COMPREPLY=( $(compgen -W "${sugestions}" -- "${COMP_WORDS[COMP_CWORD]}") )
+                }
+            elif [ "${COMP_WORDS[1]}" = "${toolsForLinuxArgs[4]}" ]; then
+                (( $COMP_CWORD < 3 )) && {
+                    sugestions="git"
                     COMPREPLY=( $(compgen -W "${sugestions}" -- "${COMP_WORDS[COMP_CWORD]}") )
                 }
             fi

@@ -4,6 +4,7 @@
 declare INSTALATION_FOLDER="/opt/ToolsForLinux"
 declare _LIB_="$INSTALATION_FOLDER/lib"
 declare _SRC_="$INSTALATION_FOLDER/src"
+declare _DOC_="$INSTALATION_FOLDER/doc"
 declare _ALIAS_TOOLSFORLINUX_="ToolsForLinux"
 declare -a _SUBCOMMANDS_=("system" "others" "files")
 
@@ -11,6 +12,32 @@ declare -a _SUBCOMMANDS_=("system" "others" "files")
 . "$_LIB_/functions.sh"
 . "$_LIB_/globalVariable.sh"
 . "$_LIB_/dependencies.sh"
+
+: '
+####################### FUNCTION AREA #######################
+'
+function docs() {
+    local errorcode
+
+    . "$_ALIAS_TOOLSFORLINUX_" others clear-screen
+    printMessages "Show DOC" 3
+    case "$1" in
+        git)
+            
+            cat "$_DOC_/git"
+            errorcode=$?
+        ;;
+        *) printMessages "Invalid arguments" 4 ${FUNCNAME[0]}; return $_CODE_EXIT_ERROR_ ;;
+    esac
+    
+    (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
+        printMessages "Operation Fail" 4 ${FUNCNAME[0]}
+        return $errorcode
+    }
+    printMessages "Done" 1
+    return $_CODE_EXIT_SUCCESS_
+}
+
 
 : '
 ####################### MAIN AREA #######################
@@ -38,6 +65,7 @@ case "$_OPERATIONS_" in
     others) . "$_SRC_/${_SUBCOMMANDS_[1]}.sh" "$@" ;;
     files) . "$_SRC_/${_SUBCOMMANDS_[2]}.sh" "$@" ;;
     install-dependencies) installDependencies "$@" ;;
+    docs) docs "$@" ;;
     help) HELP ;;
     *)
         messageerror="$_ALIAS_TOOLSFORLINUX_ help"
