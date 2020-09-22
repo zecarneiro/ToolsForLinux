@@ -23,16 +23,28 @@ if [ -d "$INSTALATION_FOLDER" ]; then
     eval "sudo $UNINSTALL_SCRIPT"
 fi
 
+: '
+####################### INSTALL TOOL AREA #######################
+'
 echo -e "$INITIATOR Install $COMMAND_SCRIPT"
 sudo mkdir -p "$INSTALATION_FOLDER"
 sudo cp -r . "$INSTALATION_FOLDER"
 
-echo -e "$INITIATOR Set command"
+: '
+####################### SET COMMAND AREA #######################
+'
+echo -e "$INITIATOR Set command $COMMAND_SCRIPT"
 . "$TOOLS_FOR_LINUX_SCRIPT" files create-shortcuts "$TOOLS_FOR_LINUX_SCRIPT" "$PATH_COMMAND" "$COMMAND_SCRIPT"
 
+: '
+####################### SET AUTOCOMPLETE AREA #######################
+'
 echo -e "$INITIATOR Set autocomplete script"
 echo ". \"$AUTOCOMPLETE_SCRIPT\"" | sudo tee -a "$BASH_RC_FILE" > /dev/null
 
+: '
+####################### RESTART BASHRC AND DELETE UNECESSARY FILES AREA #######################
+'
 echo -e "$INITIATOR Restart bashrc file"
 . "$BASH_RC_FILE"
 

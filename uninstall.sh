@@ -18,15 +18,24 @@ fi
 # Read BASHRC_FILE
 BASH_RC_FILE_DATA="$(cat "$BASH_RC_FILE")"
 
+: '
+####################### REMOVE COMMAND AREA #######################
+'
 # Remove command
 echo -e "$INITIATOR Remove $COMMAND"
 [[ -f "$COMMAND" ]] && sudo rm -r "$COMMAND"
 
+: '
+####################### UNINSTALL AUTOCOMPLETE AREA #######################
+'
 # EXECUTE BASHRC OPERATIONS
 echo -e "$INITIATOR Remove script autocomplete"
 BASH_RC_FILE_DATA="$(echo "$BASH_RC_FILE_DATA" | grep -v ". \"$AUTOCOMPLETE_SCRIPT\"")"
 echo "$BASH_RC_FILE_DATA" | sudo tee "$BASH_RC_FILE" > /dev/null
 
+: '
+####################### UNINSTALL TOOL AREA #######################
+'
 # DELETE INSTALATION FOLDER
 if [ -d "$INSTALATION_FOLDER" ]; then
     echo -e "$INITIATOR Delete Dir: $INSTALATION_FOLDER"
