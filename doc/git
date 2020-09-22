@@ -2,11 +2,9 @@
     1. git init
     2. git remote add origin <servidor>
 
->> Criar uma cópia de um repositório local
-    -> git clone /caminho/para/o/repositório
-
->> Criar uma cópia de um repositório remoto
-    -> git clone usuário@servidor:/caminho/para/o/repositório
+>> Criar uma cópia de um repositório local/remoto
+    -> LOCAL: git clone /caminho/para/o/repositório
+    -> REMOTO: git clone usuário@servidor:/caminho/para/o/repositório
 
 >> Adicionar mudanças ao index
     -> git add <arquivo>
@@ -30,7 +28,7 @@
         1. git fetch origin
         2. git reset --hard origin/<branch>
 
->> Merge/Log/Tag/Diferenças
+>> Merge/Log/Tag/Diferenças e Estado actual
     -> MERGE:
         # NOMAL:
             1. Mudar para a <branch>
@@ -42,6 +40,7 @@
     -> TAG:
         1. Localizar o ID_LOG
         2. git tag 1.0.0 ID_LOG     (1.0.0 - Versão)
+    -> ESTADO_ACTUAL: git status
     -> DIFF: git diff <branch origem> <branch destino>      (Mostra as diferenças entre origem e destino)
 
 >> Rebase iterativo
@@ -57,7 +56,10 @@
         1. git config --global diff.tool <NAMETOOL>
         2. git config --global difftool.<NAMETOOL>.path <FULL_PATH_EXECUTABLE_APP>
         3. git config --global difftool.<NAMETOOL>.cmd <COMMAND_TO_EXECUTE_APP>         (EXEMPLE WIN: "C:/Program Files/KDiff3/kdiff3.exe" "$LOCAL" "$REMOTE")
-			
+
+>> Guardar as alterações sem adicionar ao index
+    1. git stash        (Guarda)
+    2. git stash pop    (Restaura)
 
 >> OUTROS
     -> SET NAME|EMAIL: git config [--global] user.name|user.email <name|email>
