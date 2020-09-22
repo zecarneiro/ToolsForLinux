@@ -342,7 +342,10 @@ function diskOnWSL() {
 	local mountLetterDir="$(upperLowerString lower "$letterDisk")"
     local windowsLetter="$(upperLowerString upper "$letterDisk")"
 	local mountDir="/mnt"
+	local namePrint="Disk On WSL"
 	local errorcode
+
+	printMessages "Init $namePrint" 3
 
     # Validate Letter inserted
     if [ ${#letterDisk} -ne 1 ]; then
@@ -368,7 +371,7 @@ function diskOnWSL() {
         printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
         return $errorcode
     }
-	printMessages "Done" 1
+	printMessages "$namePrint Done" 1
 	return $_CODE_EXIT_SUCCESS_
 }
 

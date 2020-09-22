@@ -18,9 +18,10 @@ declare -a _SUBCOMMANDS_=("system" "others" "files")
 '
 function docs() {
     local errorcode
+    local namePrint="DOC"
 
     . "$_ALIAS_TOOLSFORLINUX_" others clear-screen
-    printMessages "Show DOC" 3
+    printMessages "Show $namePrint" 3
     case "$1" in
         git)
             
@@ -34,10 +35,9 @@ function docs() {
         printMessages "Operation Fail" 4 ${FUNCNAME[0]}
         return $errorcode
     }
-    printMessages "Done" 1
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
-
 
 : '
 ####################### MAIN AREA #######################
@@ -51,7 +51,7 @@ function HELP() {
     data+=("${_SUBCOMMANDS_[0]}" "\"Execute operation necessary for system\"")
     data+=("${_SUBCOMMANDS_[1]}" "\"Execute others operations\"")
     data+=("${_SUBCOMMANDS_[2]}" "\"Execute operactions for files and directories\"")
-    data+=("\"install-dependencies [apt|deb|rpm|gnome-shell-ext|snap|flatpak|locale-package|dconf|wget]\"" "\"Execute operactions for files and directories\"")
+    data+=("\"install-dependencies [deb|rpm|gnome-shell-ext|snap|flatpak|locale-package|dconf|wget|git]\"" "\"Execute operactions for files and directories\"")
 
     data+=("%EMPTY_LINE%")
     data+=("help" "Help")

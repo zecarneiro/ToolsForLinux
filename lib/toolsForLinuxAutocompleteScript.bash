@@ -98,7 +98,7 @@ _ToolsForLinux_completions() {
                 _Files_completions
             elif [ "${COMP_WORDS[1]}" = "${toolsForLinuxArgs[3]}" ]; then
                 (( $COMP_CWORD < 3 )) && {
-                    sugestions="all apt deb rpm gnome-shell-ext snap flatpak locale-package dconf wget"
+                    sugestions="all deb rpm gnome-shell-ext snap flatpak locale-package dconf wget git"
                     COMPREPLY=( $(compgen -W "${sugestions}" -- "${COMP_WORDS[COMP_CWORD]}") )
                 }
             elif [ "${COMP_WORDS[1]}" = "${toolsForLinuxArgs[4]}" ]; then

@@ -11,68 +11,77 @@ declare -a _DEPENDENCY_FLATPAK_=("torsocks" "flatpak" "xdg-desktop-portal-gtk" "
 declare -a _DEPENDENCY_LOCALE_PACKAGE_=("locale" "check-language-support")
 declare -a _DEPENDENCY_DCONF_=("dconf")
 declare -a _DEPENDENCY_WGET_=("wget")
+declare -a _DEPENDENCY_GIT_=("git")
 
 function installDependencies() {
     local typeInstall="$1"
     local typeInstallAll="all"
+    local namePrint="Dependencies"
+    local -a appsToInstallAPT=()
+    local -a serviceToStart=()
 
+    printMessages "Install $namePrint" 3
     . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-update
 
     # DEB
     if [ "$typeInstall" = "deb" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        printMessages "Install Dependency for DEB" 3
-        . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i ${_DEPENDENCY_DEB_[1]}
+        appsToInstallAPT+=("${_DEPENDENCY_DEB_[1]}")
     fi
 
     # RPM
     if [ "$typeInstall" = "rpm" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        printMessages "Install Dependency for RPM" 3
-        . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i ${_DEPENDENCY_RPM_[1]} 
+        appsToInstallAPT+=("${_DEPENDENCY_RPM_[1]}")
     fi
 
     # GNOME-SHELL-EXT
     if [ "$typeInstall" = "gnome-shell-ext" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        printMessages "Install Dependency for GNOME-SHELL-EXT" 3
-        . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i ${_DEPENDENCY_GNOME_SHELL_EXT_[0]}
+        appsToInstallAPT+=("${_DEPENDENCY_GNOME_SHELL_EXT_[0]}")
     fi
 
     # SNAP
     if [ "$typeInstall" = "snap" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        printMessages "Install Dependency for SNAP" 3
-        . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i ${_DEPENDENCY_SNAP_[1]} ${_DEPENDENCY_SNAP_[2]}
-
-        serv_snap_active=$(. "$_SRC_/${_SUBCOMMANDS_[0]}.sh" is-service-active snapd)
-
-         # Start Snap
-        if [ "$serv_snap_active" = "$_FALSE_" ]; then
-            sudo service snapd start
-        fi
+        appsToInstallAPT+=("${_DEPENDENCY_SNAP_[1]}" "${_DEPENDENCY_SNAP_[2]}")
+        serviceToStart+=("snapd")
     fi
 
     # FLATPAK
     if [ "$typeInstall" = "flatpak" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        printMessages "Install Dependency for FLATPAK" 3
-        . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i "${_DEPENDENCY_FLATPAK_[@]}"
+        appsToInstallAPT+=("${_DEPENDENCY_FLATPAK_[@]}")
     fi
 
     # LOCALE-PACKAGE
     if [ "$typeInstall" = "locale-package" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        printMessages "Install Dependency for LOCALE-PACKAGE" 3
-        . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i "language-selector-common"
+        appsToInstallAPT+=("language-selector-common")
     fi
 
     # DCONF-EDITOR
-    if [ "$typeInstall" = "locale-package" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        printMessages "Install Dependency for DCONF-EDITOR" 3
-        . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i "${_DEPENDENCY_DCONF_[@]}"
+    if [ "$typeInstall" = "dconf" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
+        appsToInstallAPT+=("dconf-editor")
     fi
 
     # WGET
     if [ "$typeInstall" = "wget" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        printMessages "Install Dependency for WGET" 3
-        . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i "${_DEPENDENCY_WGET_[@]}"
+        appsToInstallAPT+=("${_DEPENDENCY_WGET_[@]}")
     fi
-    printMessages "Done" 1
+
+    # GIT
+    if [ "$typeInstall" = "git" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
+        appsToInstallAPT+=("${_DEPENDENCY_GIT_[@]}")
+    fi
+
+    # Install APT
+    . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i "${appsToInstallAPT[@]}"
+
+    # Run Services
+    for service in "${serviceToStart[@]}"; do
+        local serv_snap_active=$(. "$_SRC_/${_SUBCOMMANDS_[0]}.sh" is-service-active $service)
+
+        # Start Snap
+        if [ "$serv_snap_active" = "$_FALSE_" ]; then
+            sudo service $service start
+        fi
+    done
+    printMessages "$namePrint Done" 1
 }
 
 function validateDependencies() {

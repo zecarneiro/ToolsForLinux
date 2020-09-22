@@ -10,6 +10,10 @@
 '
 function moveAllToMainFolder() {
     local maindir="$1"
+    local namePrint="MOVE TO MAIN FOLDER"
+
+    printMessages "Init $namePrint" 3
+
     [[ -n "$maindir" ]] && {
         if [ -d "$maindir" ]; then
             cd "$maindir"
@@ -22,7 +26,7 @@ function moveAllToMainFolder() {
         return $_CODE_EXIT_ERROR_
     } || {
         emptyFilesDirectory d delete
-        printMessages "Done" 1
+        printMessages "$namePrin Done" 1
     }
     return $_CODE_EXIT_SUCCESS_
 }
@@ -38,10 +42,10 @@ function moveAllToMainFolder() {
 function emptyFilesDirectory() {
     local typeOfData="$1"
     local operations="$2"
-
     local errorcode=0
+    local namePrint="Empty Files or Directory"
 
-    printMessages "Init List/Delete Empty Files or Directory" 3
+    printMessages "Init List/Delete $namePrint" 3
 
     case "$typeOfData" in
         f)
@@ -63,7 +67,7 @@ function emptyFilesDirectory() {
     (( $errorcode > 0 )) && {
         printMessages "Operactions Fail" 4 "${FUNCNAME[0]}"
         exitError $errorcode
-    } || printMessages "Done" 1
+    } || printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -79,9 +83,10 @@ function createShortcuts() {
     local file="$1"
     local dest="$2"
     local shortcuts_name="$3"
+    local namePrint="Create symbolic links"
     local errorcode
 
-    printMessages "Create symbolic links for: $file" 3
+    printMessages "$namePrint for: $file" 3
     if [ -n "$file" ]; then        
         if [ -f "$file" ]||[ -d "$file" ]; then
             # Get name of file if not set
@@ -116,7 +121,7 @@ function createShortcuts() {
         printMessages "Invalid File inserted" 4 "${FUNCNAME[0]}"
         return $_CODE_EXIT_ERROR_
     fi
-    printMessages "Done" 1
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -147,6 +152,7 @@ function desktopFile() {
         ['terminal']="%TERMINAL%"
         ['extradata']="%EXTRA_DATA%"
     )
+    local namePrint="Create Desktop file"
     local desktopPath
     local desktopFile
 
@@ -161,7 +167,7 @@ function desktopFile() {
         Type=Application\n
     "
 
-    printMessages "Init Create Desktop file" 3
+    printMessages "Init $namePrint" 3
     case "$operations" in
         boot)
             desktopPath="$homePath/.config/autostart"
@@ -219,7 +225,7 @@ function desktopFile() {
     # Set permission to exec
     chmod +x "$desktopFile"
 
-    printMessages "Done" 1
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 

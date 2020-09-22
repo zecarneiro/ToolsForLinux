@@ -10,8 +10,9 @@ function cleanSystemAPT() {
     local listDPKG
     local errorcode
     local homeDir="$(echo $HOME)"
+    local namePrint="Clean System for APT"
 
-    printMessages "Clean System for APT" 3
+    printMessages "$namePrint" 3
 
     validateDependencies apt
     exitError $?
@@ -32,17 +33,20 @@ function cleanSystemAPT() {
 		dpkg -l | grep ^rc | awk '{ print $2}' | sudo xargs dpkg --purge
         return $?
 	fi
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
 # Update APT repository
 function updateAPT() {
+    local namePrint="Update Repository APT"
     validateDependencies apt
     exitError $?
 
-    printMessages "Update Repository APT" 3
+    printMessages "$namePrint" 3
 
     executeCMD "sudo apt update"
+    printMessages "$namePrint Done" 1
 	return $?
 }
 
@@ -51,12 +55,13 @@ function upgradeAPT() {
     local errorcode
     local upgradableApp
     local -i countUpgradableApp
+    local namePrint="Upgrade APP APT"
 
     # Validate
     validateDependencies apt
     exitError $?
 
-    printMessages "Upgrade APP APT" 3
+    printMessages "$namePrint" 3
 
 	# Upgrade System
 	while [ 1 ]; do
@@ -81,7 +86,7 @@ function upgradeAPT() {
             return $errorcode
         }
 	done
-    printMessages "DONE" 1
+    printMessages "$namePrint DONE" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -120,7 +125,9 @@ function repositoryAPT() {
     local countFail=0
     local existPPA
     local cmdRun
+    local namePrint="Install/Uninstall APT Repositories"
 
+    printMessages "$namePrint" 3
     validateDependencies apt
     exitError $?
 
@@ -173,7 +180,10 @@ function repositoryAPT() {
         local errorcode=$?
         (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && return $errorcode
     }
-    (( $countFail > 0 )) && printMessages "$errorPPA" 2; return $_CODE_EXIT_ERROR_
+    (( $countFail > 0 )) && {
+        printMessages "$errorPPA" 2; return $_CODE_EXIT_ERROR_
+    }
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -189,7 +199,9 @@ function appAPT() {
     local cmd
     local errorAPP
     local countFail=0
+    local namePrint="Install/Uninstall APT APPs"
 
+    printMessages "$namePrint" 3
     validateDependencies apt
     exitError $?
 
@@ -236,7 +248,11 @@ function appAPT() {
             ;;
         esac
     done
-    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_CODE_EXIT_ERROR_
+
+    (( $countFail > 0 )) && {
+        printMessages "$errorAPP" 2; return $_CODE_EXIT_ERROR_
+    }
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -253,7 +269,9 @@ function debFiles() {
     local errorDEB="INSTALL FAIL DEB: "
     local countFail=0
     local cmd="sudo gdebi -n %APP%"
+    local namePrint="Install DEB Files"
 
+    printMessages "$namePrint" 3
     validateDependencies deb
     exitError $?
 
@@ -269,7 +287,10 @@ function debFiles() {
             } || printMessages "$app installed" 1
         } || printMessages "APP $app already installed!!!" 2
     done
-    (( $countFail > 0 )) && printMessages "$errorDEB" 2; return $_CODE_EXIT_ERROR_
+    (( $countFail > 0 )) && {
+        printMessages "$errorDEB" 2; return $_CODE_EXIT_ERROR_
+    }
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -283,7 +304,9 @@ function rpmFiles() {
     local errorRPM="INSTALL FAIL RPM: "
     local countFail=0
     local cmd="sudo alien -i %APP%"
+    local namePrint="Install RPM Files"
 
+    printMessages "$namePrint" 3
     validateDependencies rpm
     exitError $?
 
@@ -299,7 +322,10 @@ function rpmFiles() {
             } || printMessages "$app installed" 1
         } || printMessages "APP $app already installed!!!" 2
     done
-    (( $countFail > 0 )) && printMessages "$errorRPM" 2; return $_CODE_EXIT_ERROR_
+    (( $countFail > 0 )) && {
+        printMessages "$errorRPM" 2; return $_CODE_EXIT_ERROR_
+    }
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -315,7 +341,9 @@ function gnomeShellExtensions() {
     local extensionsPath="$homePath/.local/share/gnome-shell/extensions"
     local uuid=""
     local countFail=0
+    local namePrint="Install Gnome Shell Extensions"
 
+    printMessages "$namePrint" 3
     validateDependencies gnome-shell-ext
     exitError $?
 
@@ -349,7 +377,10 @@ function gnomeShellExtensions() {
             printMessages "ERROR: Failed on get UUID from extension: $extension" 4
         fi
     done
-    (( $countFail > 0 )) && printMessages "$errorGNOME_EXT" 2; return $_CODE_EXIT_ERROR_
+    (( $countFail > 0 )) && {
+        printMessages "$errorGNOME_EXT" 2; return $_CODE_EXIT_ERROR_
+    }
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -358,12 +389,15 @@ function gnomeShellExtensions() {
 '
 # Update Snap repository
 function updateSNAP() {
+    local namePrint="Update/Upgrade Repository/APP SNAP"
+
     validateDependencies snap
     exitError $?
 
-    printMessages "Update/Upgrade Repository/APP SNAP" 3
+    printMessages "$namePrint" 3
 
     executeCMD "sudo snap refresh"
+    printMessages "$namePrint Done" 1
 	return $?
 }
 
@@ -398,7 +432,9 @@ function appSNAP() {
     local cmd
     local errorAPP
     local countFail=0
+    local namePrint="Install/Uninstall SNAP APPs"
 
+    printMessages "$namePrint" 3
     validateDependencies snap
     exitError $?
 
@@ -449,7 +485,10 @@ function appSNAP() {
             ;;
         esac
     done
-    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_CODE_EXIT_ERROR_
+    (( $countFail > 0 )) && {
+        printMessages "$errorAPP" 2; return $_CODE_EXIT_ERROR_
+    }
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -458,12 +497,15 @@ function appSNAP() {
 '
 # Update/Upgrade Repository
 function updateFLATPAK() {
+    local namePrint="Update/Upgrade Repository/APP FLATPAK"
+
     validateDependencies flatpak
     exitError $?
 
-    printMessages "Update/Upgrade Repository/APP FLATPAK" 3
+    printMessages "$namePrint" 3
 
     executeCMD "flatpak update || torsocks flatpak update"
+    printMessages "$namePrint Done" 1
 	return $?
 }
 
@@ -499,7 +541,9 @@ function repositoryFLATPAK() {
     local runUpdate=0
     local errorPPA
     local countFail=0
+    local namePrint="Install/Uninstall FLATPAK Remote's"
 
+    printMessages "$namePrint" 3
     validateDependencies flatpak
     exitError $?
 
@@ -548,7 +592,11 @@ function repositoryFLATPAK() {
 
     # Update Lib
     (( $runUpdate > 0 )) && updateFLATPAK
-    (( $countFail > 0 )) && printMessages "$errorPPA" 2; return $_CODE_EXIT_ERROR_
+    (( $countFail > 0 )) && {
+        printMessages "$errorPPA" 2; return $_CODE_EXIT_ERROR_
+    }
+    printMessages "$namePrint Done" 1
+    return $_CODE_EXIT_SUCCESS_
 }
 
 : '
@@ -563,7 +611,9 @@ function appFLATPAK() {
     local cmd
     local errorAPP
     local countFail=0
+    local namePrint="Install/Uninstall FLATPAK APPs"
 
+    printMessages "$namePrint" 3
     validateDependencies flatpak
     exitError $?
 
@@ -609,7 +659,10 @@ function appFLATPAK() {
             ;;
         esac
     done
-    (( $countFail > 0 )) && printMessages "$errorAPP" 2; return $_CODE_EXIT_ERROR_
+    (( $countFail > 0 )) && {
+        printMessages "$errorAPP" 2; return $_CODE_EXIT_ERROR_
+    }
+    printMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -621,7 +674,9 @@ function fixLocalePackage() {
     local errorCode=0
     local localeLang
     local language_all_package
+    local namePrint="Fix Locale Package"
 
+    printMessages "$namePrint" 3
     validateDependencies "locale-package"
     errorCode=$?
     (( $errorCode > $_CODE_EXIT_SUCCESS_ )) && {
@@ -629,18 +684,27 @@ function fixLocalePackage() {
         exitError "$errorCode"
     }
     
-    printMessages "Fix Locale Package" 3
 	localeLang="$(locale | grep LANGUAGE | cut -d '=' -f2- | cut -d ':' -f1)"
     if [ -n "$localeLang" ]; then
         language_all_package="$(check-language-support -l $lacaleLang)"
         appAPT i "$language_all_package"
     fi
+    printMessages "$namePrint Done" 1
+    return $_CODE_EXIT_SUCCESS_
 }
 
 # Reload Gnome Shell
 function reloadGnomeShell() {
+    local namePrint="Reload Gnome Shell"
+
+    printMessages "$namePrint" 3
     killall -3 gnome-shell
-	(( $? > 0 )) && printMessages "Operations Fail" 4 ${FUNCNAME[0]} || printMessages "Done" 1
+	(( $? > 0 )) && {
+        printMessages "Operations Fail" 4 ${FUNCNAME[0]}
+        return $_CODE_EXIT_ERROR_
+    }
+    printMessages "$namePrint Done" 1
+    return $_CODE_EXIT_SUCCESS_
 }
 
 : '
@@ -651,11 +715,13 @@ function reloadGnomeShell() {
 '
 function upgradeSystem() {
     local validArguments=0
+    local namePrint="Update/Upgrade System"
     case "$1" in
         apt|snap|flatpak|all) validArguments=1 ;;
         *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; exitError $_CODE_EXIT_ERROR_ ;;
     esac
     
+    printMessages "$namePrint" 3
     validateDependencies apt
     exitError $?
 
@@ -680,7 +746,8 @@ function upgradeSystem() {
         validateDependencies flatpak
         (( $? < 1 )) && updateFLATPAK
     fi
-    printMessages "DONE" 1
+    printMessages "$namePrint DONE" 1
+    return $_CODE_EXIT_SUCCESS_
 }
 
 : '
