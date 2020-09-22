@@ -21,6 +21,7 @@ function moveAllToMainFolder() {
         printMessages "Operations Fail" 4 ${FUNCNAME[0]}
         return $_CODE_EXIT_ERROR_
     } || {
+        emptyFilesDirectory d delete
         printMessages "Done" 1
     }
     return $_CODE_EXIT_SUCCESS_
@@ -31,8 +32,8 @@ function moveAllToMainFolder() {
     For more information visit:\n\t1 - https://www.computerhope.com/unix/ufind.htm\n\n
 
     ARGS:
-    type =          $1  (If file or directory)
-    operations =    $2  (Is Delete Or List)
+    type =          $1  (f|d )
+    operations =    $2  (list|delete)
 '
 function emptyFilesDirectory() {
     local typeOfData="$1"
