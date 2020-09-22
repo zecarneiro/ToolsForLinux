@@ -205,6 +205,48 @@ function createTable() {
 }
 
 : '
+	Backup/Load and Reset dconf data
+
+	ARGS:
+	diretion =		$1	(l/r)
+	separator =		$2
+	string =		$1
+'
+function dconf() {
+	local dconfPath="$2"
+	local backupFile="$3"
+	local errorcode
+
+	validateDependencies dconf
+    exitError $?
+
+	# Validate dconf path
+	if [ -z "$dconfPath" ]; then
+		printMessages "Invalid DCONF PATH" 4 ${FUNCNAME[0]}
+		return $_CODE_EXIT_ERROR_
+	fi
+
+	# Validate dconf path
+	if [[ "$reset" =~ "reset" ]]&&[ -z "$backupFile" ]; then
+		printMessages "Invalid Backup file" 4 ${FUNCNAME[0]}
+		return $_CODE_EXIT_ERROR_
+	fi
+
+	case "$1" in
+		backup) dconf dump "$dconfPath" > "$backupFile"; errorcode=$? ;;
+		restore) dconf load "$dconfPath" < "$backupFile"; errorcode=$? ;;
+		reset) dconf reset -f "$pathDconf"; errorcode=$? ;;
+		*) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
+	esac
+	
+	(( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
+        printMessages "Operations Fail" 4 "${FUNCNAME[0]}"
+        return $errorcode
+    }
+	return $_CODE_EXIT_SUCCESS_
+}
+
+: '
 ####################### MAIN AREA #######################
 '
 function HELP() {
@@ -220,8 +262,8 @@ function HELP() {
 	data+=("\"trim [STRING]\"" "\"TRIM string\"")
 	data+=("\"cut-string-by-separator [l/r SEPARATOR STRING]\"" "\"Cut string by separator\"")
 	data+=("\"exec-cmd-get-output [COMMAND]\"" "\"Execute command and print result\"")
-	
 	data+=("\"create-table [DATA_1 DATA_2...]\"" "\"Print data in table format\"")
+	data+=("\"dconf [backup|restore|reset DCONF_PATH BACKUP_FILE]\"" "\"Backup/Load and Reset dconf data. If reset backup file is not necessary\"")
     data+=("%EMPTY_LINE%")
     data+=("help" "Help")
 
@@ -237,6 +279,7 @@ case "$_OPERATIONS_APT_" in
 	cut-string-by-separator) cutStringBySeparator "$@" ;;
 	exec-cmd-get-output) execCommandGetOutput "$@" ;;
 	create-table) createTable "$@" ;;
+	dconf) dconf "$@" ;;
 	help) HELP ;;
 	*)
         messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[1]} help"

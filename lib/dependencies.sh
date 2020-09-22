@@ -9,7 +9,7 @@ declare -a _DEPENDENCY_GNOME_SHELL_EXT_=("unzip" "gnome-shell-extension-tool")
 declare -a _DEPENDENCY_SNAP_=("$_DEPENDENCY_SUDO_" "snapd" "snapd-xdg-open")
 declare -a _DEPENDENCY_FLATPAK_=("torsocks" "flatpak" "xdg-desktop-portal-gtk" "gnome-software-plugin-flatpak")
 declare -a _DEPENDENCY_LOCALE_PACKAGE_=("locale" "check-language-support")
-declare -a _DEPENDENCY_DCONF_=("dconf-tools")
+declare -a _DEPENDENCY_DCONF_=("dconf")
 declare -a _DEPENDENCY_WGET_=("wget")
 
 function installDependencies() {
