@@ -776,7 +776,7 @@ function HELP() {
     data+=("apt-clean" "\"Clear all APT app data and uninstall unecessary apt apps\"")
     data+=("apt-update" "\"Update APT repository\"")
     data+=("apt-upgrade" "\"Upgrade APT System\"")
-    data+=("\"apt-installed [APP]\"" "\"Get List of App APT Installed. APP if present only this app\"")
+    data+=("\"apt-installed [APP(OP)]\"" "\"Get List of App APT Installed\"")
     data+=("\"apt-repository [i|u PPA1 PPA2...]\"" "\"Install/Uninstall APT PPA\"")
     data+=("\"apt-app [i|u APP1 APP2...]\"" "\"Install/Uninstall APT APP\"")
 
@@ -787,12 +787,12 @@ function HELP() {
     
     data+=("%EMPTY_LINE%")
     data+=("snap-update" "\"Update Snap repository\"")
-    data+=("\"snap-installed [APP]\"" "\"Get List of App SNAP Installed. APP if present only this app\"")
+    data+=("\"snap-installed [APP(OP)]\"" "\"Get List of App SNAP Installed\"")
     data+=("\"snap-app [i|i-classic|u APP1 APP2...]\"" "\"Install/Uninstall SNAP APP\"")
 
     data+=("%EMPTY_LINE%")
     data+=("flatpak-update" "\"Update/Upgrade Repository\"")
-    data+=("\"flatpak-installed [APP]\"" "\"Get List of App FLATPAK Installed. APP if present only this app\"")
+    data+=("\"flatpak-installed [APP(OP)]\"" "\"Get List of App FLATPAK Installed\"")
     data+=("\"flatpak-repository [i|u REMOTE1 REMOTE2...]\"" "\"Install/Uninstall FLATPAK Repository\"")
     data+=("\"flatpak-app [i|u APP1 APP2...]\"" "\"Install/Uninstall FLATPAK APP\"")
 
@@ -808,6 +808,7 @@ function HELP() {
     data+=("help" "Help")
     
     . "$_SRC_/${_SUBCOMMANDS_[1]}.sh" create-table ${data[@]}
+    printInformationHelp
 }
 
 declare _OPERATIONS_APT_="$1"; shift

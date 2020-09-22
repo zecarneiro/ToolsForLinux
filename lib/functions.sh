@@ -4,7 +4,7 @@
 function printWithPropont() {
     local propont_name="\$"  
     [[ -n "$2" ]] && propont_name="$2"    
-    echo -e "\n${LIGHTCYAN}${propont_name}>${NOCOLOR} ${1}"
+    echo -e "${LIGHTCYAN}${propont_name}>${NOCOLOR} ${1}"
 }
 
 : '
@@ -61,4 +61,9 @@ function executeCMD() {
     fi
     eval "$1"
     return $?
+}
+
+function printInformationHelp() {
+    echo -e "\nINFORMATION:"
+    echo -e "\t > OP = OPTIONAL"
 }

@@ -9,7 +9,8 @@ declare AUTOCOMPLETE_SCRIPT="${LIB_FOLDER}/toolsForLinuxAutocompleteScript.bash"
 declare UNINSTALL_SCRIPT="$INSTALATION_FOLDER/uninstall.sh"
 declare TOOLS_FOR_LINUX_SCRIPT="$INSTALATION_FOLDER/ToolsForLinux.sh"
 declare BASH_RC_FILE="/etc/bash.bashrc"
-declare ALIAS_SCRIPT="ToolsForLinux"
+declare PATH_COMMAND="/bin"
+declare COMMAND_SCRIPT="ToolsForLinux"
 declare BASH_RC_FILE_DATA
 
 if [ ! -f "$BASH_RC_FILE" ]; then
@@ -22,12 +23,13 @@ if [ -d "$INSTALATION_FOLDER" ]; then
     eval "sudo $UNINSTALL_SCRIPT"
 fi
 
-echo -e "$INITIATOR Install $ALIAS_SCRIPT"
+echo -e "$INITIATOR Install $COMMAND_SCRIPT"
 sudo mkdir -p "$INSTALATION_FOLDER"
 sudo cp -r . "$INSTALATION_FOLDER"
 
-echo -e "$INITIATOR Set alias"
-echo "alias ${ALIAS_SCRIPT}=\"$TOOLS_FOR_LINUX_SCRIPT\"" | sudo tee -a "$BASH_RC_FILE" > /dev/null
+echo -e "$INITIATOR Set command"
+. "$TOOLS_FOR_LINUX_SCRIPT" files create-shortcuts "$TOOLS_FOR_LINUX_SCRIPT" "$PATH_COMMAND" "$COMMAND_SCRIPT"
+
 echo -e "$INITIATOR Set autocomplete script"
 echo ". \"$AUTOCOMPLETE_SCRIPT\"" | sudo tee -a "$BASH_RC_FILE" > /dev/null
 
@@ -36,7 +38,7 @@ echo -e "$INITIATOR Restart bashrc file"
 
 # Remove unecessary files
 echo -e "$INITIATOR Remove unecessary files"
-declare -a unecessary_files=("install.sh" ".git" ".gitattributes" "gitUserInfo.sh" "toolGitUserInfo.sh")
+declare -a unecessary_files=("install.sh" ".git" ".gitattributes")
 for item in "${unecessary_files[@]}"; do
     sudo rm -r "$INSTALATION_FOLDER/$item"
 done

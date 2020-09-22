@@ -7,7 +7,7 @@ declare INSTALATION_FOLDER="/opt/ToolsForLinux"
 declare LIB_FOLDER="${INSTALATION_FOLDER}/lib"
 declare AUTOCOMPLETE_SCRIPT="${LIB_FOLDER}/toolsForLinuxAutocompleteScript.bash"
 declare BASH_RC_FILE="/etc/bash.bashrc"
-declare ALIAS_SCRIPT="ToolsForLinux"
+declare COMMAND="/bin/ToolsForLinux"
 declare BASH_RC_FILE_DATA
 
 if [ ! -f "$BASH_RC_FILE" ]; then
@@ -18,10 +18,11 @@ fi
 # Read BASHRC_FILE
 BASH_RC_FILE_DATA="$(cat "$BASH_RC_FILE")"
 
-# EXECUTE BASHRC OPERATIONS  
-echo -e "$INITIATOR Remove alias $ALIAS_SCRIPT from bashrc file"
-BASH_RC_FILE_DATA="$(echo "$BASH_RC_FILE_DATA" | grep -v "^alias ${ALIAS_SCRIPT}=")"
+# Remove command
+echo -e "$INITIATOR Remove $COMMAND"
+[[ -f "$COMMAND" ]] && sudo rm -r "$COMMAND"
 
+# EXECUTE BASHRC OPERATIONS
 echo -e "$INITIATOR Remove script autocomplete"
 BASH_RC_FILE_DATA="$(echo "$BASH_RC_FILE_DATA" | grep -v ". \"$AUTOCOMPLETE_SCRIPT\"")"
 echo "$BASH_RC_FILE_DATA" | sudo tee "$BASH_RC_FILE" > /dev/null

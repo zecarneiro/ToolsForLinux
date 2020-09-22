@@ -52,7 +52,7 @@ _Others_completions() {
 
 _Files_completions() {
     local sugestions=""
-    local -a filesArgs=("move-to-main-folder" "empty" "create-shortcuts" "help")
+    local -a filesArgs=("move-to-main-folder" "empty" "create-shortcuts" "download" "desktop-file" "help")
 
     case $COMP_CWORD in
         2)
@@ -63,6 +63,8 @@ _Files_completions() {
             sugestions=""
             case "${COMP_WORDS[2]}" in
                 empty) sugestions="f d" ;;
+                download) sugestions="dir file" ;;
+                desktop-file) sugestions="boot normal" ;;
             esac
             COMPREPLY=( $(compgen -W "${sugestions}" -- "${COMP_WORDS[COMP_CWORD]}") )
         ;;
