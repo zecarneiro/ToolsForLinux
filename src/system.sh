@@ -148,7 +148,7 @@ function repositoryAPT() {
             ppa="$(echo "$repository" | cut -d ":" -f2)"
         fi
         existPPA=$(grep "^deb .*$repository" /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -c .)
-        cmdRun="${cmd/\%REPOSITORY\%/$repository}"
+        cmdRun="${cmd//"%REPOSITORY%"/$repository}"
 
         case "$operation" in
             i)
@@ -223,7 +223,7 @@ function appAPT() {
 
     for app in "$@"; do
         local isInstalled=$(installedAPT $app | grep -c .)
-        local cmdRun="${cmd/\%APP\%/$app}"
+        local cmdRun="${cmd//"%APP%"/$app}"
 
         case "$operation" in
             i|i-no-recommends)
@@ -277,7 +277,7 @@ function debFiles() {
 
     for app in "$@"; do
         local isInstalled=$(installedAPT $app | grep -c .)
-        local cmdRun="${cmd/\%APP\%/$app}"
+        local cmdRun="${cmd//"%APP%"/$app}"
         (( $isInstalled == 0 )) && {
             executeCMD "$cmdRun"
             (( $? > $_CODE_EXIT_SUCCESS_ )) && {
@@ -312,7 +312,7 @@ function rpmFiles() {
 
 	for app in "$@"; do
         local isInstalled=$(installedAPT $app | grep -c .)
-        local cmdRun="${cmd/\%APP\%/$app}"
+        local cmdRun="${cmd//"%APP%"/$app}"
         (( $isInstalled == 0 )) && {
             executeCMD "$cmdRun"
             (( $? > $_CODE_EXIT_SUCCESS_ )) && {
@@ -453,7 +453,7 @@ function appSNAP() {
     # TODO: Validate error code for snap
     for app in "$@"; do
         local isInstalled=$(installedSNAP $app | grep -c .)
-        local cmdRun="${cmd/\%APP\%/$app}"
+        local cmdRun="${cmd//"%APP%"/$app}"
         local errorcode
 
         case "$operation" in
@@ -564,7 +564,7 @@ function repositoryFLATPAK() {
     # TODO: Validate error code for flatpak
     for repository in "$@"; do
         local existPPA=$(flatpak remote-list | awk '{if (NR!=0) {print $1}}' | grep -i "$repository" | grep -c .)
-        local cmdRun="${cmd/\%REPOSITORY\%/$repository}"
+        local cmdRun="${cmd//"%REPOSITORY%"/$repository}"
 
         case "$operation" in
             i)
@@ -634,7 +634,7 @@ function appFLATPAK() {
     # TODO: Validate error code for flatpak
     for app in "$@"; do
         local isInstalled=$(installedFLATPAK $app | grep -c .)
-        local cmdRun="${cmd/\%APP\%/$app}"
+        local cmdRun="${cmd//"%APP%"/$app}"
 
         case "$operation" in
             i)

@@ -19,13 +19,13 @@ declare -a _SUBCOMMANDS_=("system" "others" "files")
 function docs() {
     local errorcode
     local namePrint="DOC"
-
-    . "$_ALIAS_TOOLSFORLINUX_" others clear-screen
+    local extension=".md"
+    
     printMessages "Show $namePrint" 3
     case "$1" in
         git)
             
-            cat "$_DOC_/git"
+            . "$_ALIAS_TOOLSFORLINUX_" others print-md-file "$_DOC_/git${extension}"
             errorcode=$?
         ;;
         *) printMessages "Invalid arguments" 4 ${FUNCNAME[0]}; return $_CODE_EXIT_ERROR_ ;;
@@ -51,7 +51,7 @@ function HELP() {
     data+=("${_SUBCOMMANDS_[0]}" "\"Execute operation necessary for system\"")
     data+=("${_SUBCOMMANDS_[1]}" "\"Execute others operations\"")
     data+=("${_SUBCOMMANDS_[2]}" "\"Execute operactions for files and directories\"")
-    data+=("\"install-dependencies [deb|rpm|gnome-shell-ext|snap|flatpak|locale-package|dconf|wget|git]\"" "\"Execute operactions for files and directories\"")
+    data+=("\"install-dependencies [deb|rpm|gnome-shell-ext|snap|flatpak|locale-package|dconf|wget|git|md-file]\"" "\"Execute operactions for files and directories\"")
 
     data+=("%EMPTY_LINE%")
     data+=("help" "Help")

@@ -29,7 +29,7 @@ _System_completions() {
 _Others_completions() {
     local sugestions=""
     local -a othersArgs=("clear-screen" "to-binary" "cidr-calculator" "trim" "cut-string-by-separator")
-    othersArgs+=("exec-cmd-get-output" "create-table" "dconf" "http-alias" "upper-lower-string" "disk-on-wsl" "help")
+    othersArgs+=("exec-cmd-get-output" "create-table" "dconf" "http-alias" "upper-lower-string" "disk-on-wsl" "print-md-file" "help")
 
     case $COMP_CWORD in
         2)
@@ -98,7 +98,7 @@ _ToolsForLinux_completions() {
                 _Files_completions
             elif [ "${COMP_WORDS[1]}" = "${toolsForLinuxArgs[3]}" ]; then
                 (( $COMP_CWORD < 3 )) && {
-                    sugestions="all deb rpm gnome-shell-ext snap flatpak locale-package dconf wget git"
+                    sugestions="all deb rpm gnome-shell-ext snap flatpak locale-package dconf wget git md-file"
                     COMPREPLY=( $(compgen -W "${sugestions}" -- "${COMP_WORDS[COMP_CWORD]}") )
                 }
             elif [ "${COMP_WORDS[1]}" = "${toolsForLinuxArgs[4]}" ]; then

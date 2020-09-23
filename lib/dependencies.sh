@@ -57,6 +57,11 @@ function installDependencies() {
         appsToInstallAPT+=("git")
     fi
 
+    # MD-FILE
+    if [ "$typeInstall" = "md-file" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
+        appsToInstallAPT+=("pandoc" "lynx")
+    fi
+
     # Install APT
     . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i "${appsToInstallAPT[@]}"
 
@@ -85,6 +90,7 @@ function validateDependencies() {
         dconf) dependencyArray=("dconf") ;;
         wget) dependencyArray=("wget") ;;
         git) dependencyArray=("git") ;;
+        md-file) dependencyArray=("pandoc" "lynx") ;;
         *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
     esac
     

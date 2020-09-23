@@ -376,6 +376,38 @@ function diskOnWSL() {
 }
 
 : '
+	Print MD Files
+
+	ARGS:
+	file = $1
+'
+function printFilesMD() {
+	local file="$1"
+	local namePrint="Read MD File"
+	local errorcode
+
+	printMessages "Init $namePrint" 3
+
+	validateDependencies "md-file"
+    exitError $?
+
+	[[ -f "$file" ]] && {
+		pandoc -f markdown "$file" | lynx -stdin
+		errorcode=$?
+	} || {
+		printMessages "$msgerror" 4 "${FUNCNAME[0]}"
+		return $_CODE_EXIT_ERROR_
+	}
+
+	(( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
+		printMessages "Operation Fail" 4 "${FUNCNAME[0]}"
+		return $errorcode
+	}
+	printMessages "$namePrint Done" 1
+	return $_CODE_EXIT_SUCCESS_
+}
+
+: '
 ####################### MAIN AREA #######################
 '
 function HELP() {
@@ -396,6 +428,7 @@ function HELP() {
 	data+=("\"http-alias [ADDRESS ALIAS]\"" "\"Set/Unset Alias for HTTP host\"")
 	data+=("\"upper-lower-string [upper|lower STRING]\"" "\"Upper/Lower an String\"")
 	data+=("\"disk-on-wsl [mount|umount LETTER_OF_DISK]\"" "\"Mount/Umount disk on WSL (IMPORTANT: Only work on WSL)\"")
+	data+=("\"print-md-file [FILE]\"" "\"Print MD Files\"")
     
 	data+=("%EMPTY_LINE%")
     data+=("help" "Help")
@@ -416,6 +449,7 @@ case "$_OPERATIONS_APT_" in
 	http-alias) httpAlias "$@" ;;
 	upper-lower-string) upperLowerString "$@" ;;
 	disk-on-wsl) diskOnWSL "$@" ;;
+	print-md-file) printFilesMD "$@" ;;
 	help) HELP ;;
 	*)
         messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[1]} help"
