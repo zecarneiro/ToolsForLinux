@@ -61,6 +61,15 @@
     1. git stash        (Guarda)
     2. git stash pop    (Restaura)
 
+>> Submodulos
+    -> ADD: git submodule add <url_repository> <path_for_submodulo>
+    -> USING:
+        1. git submodule init
+        2. git submodule update
+    -> DELETE:
+        1. git submodule rm <path_for_submodulo>
+        2. git rm --cached <path_for_submodulo>
+
 >> OUTROS
     -> SET NAME|EMAIL: git config [--global] user.name|user.email <name|email>
     -> DISABLE CHECK PERMISSION CHANGE: git config core.fileMode true|false
