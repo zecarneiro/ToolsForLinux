@@ -1,18 +1,6 @@
 #!/bin/bash
 # Author: José M. C. Noronha
 
-declare _DEPENDENCY_SUDO_="sudo"
-declare -a _DEPENDENCY_APT_=("$_DEPENDENCY_SUDO_" "add-apt-repository" "apt" "dpkg")
-declare -a _DEPENDENCY_DEB_=("$_DEPENDENCY_SUDO_" "gdebi")
-declare -a _DEPENDENCY_RPM_=("$_DEPENDENCY_SUDO_" "alien")
-declare -a _DEPENDENCY_GNOME_SHELL_EXT_=("unzip" "gnome-shell-extension-tool")
-declare -a _DEPENDENCY_SNAP_=("$_DEPENDENCY_SUDO_" "snapd" "snapd-xdg-open")
-declare -a _DEPENDENCY_FLATPAK_=("torsocks" "flatpak" "xdg-desktop-portal-gtk" "gnome-software-plugin-flatpak")
-declare -a _DEPENDENCY_LOCALE_PACKAGE_=("locale" "check-language-support")
-declare -a _DEPENDENCY_DCONF_=("dconf")
-declare -a _DEPENDENCY_WGET_=("wget")
-declare -a _DEPENDENCY_GIT_=("git")
-
 function installDependencies() {
     local typeInstall="$1"
     local typeInstallAll="all"
@@ -25,28 +13,28 @@ function installDependencies() {
 
     # DEB
     if [ "$typeInstall" = "deb" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("${_DEPENDENCY_DEB_[1]}")
+        appsToInstallAPT+=("gdebi")
     fi
 
     # RPM
     if [ "$typeInstall" = "rpm" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("${_DEPENDENCY_RPM_[1]}")
+        appsToInstallAPT+=("alien")
     fi
 
     # GNOME-SHELL-EXT
     if [ "$typeInstall" = "gnome-shell-ext" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("${_DEPENDENCY_GNOME_SHELL_EXT_[0]}")
+        appsToInstallAPT+=("unzip")
     fi
 
     # SNAP
     if [ "$typeInstall" = "snap" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("${_DEPENDENCY_SNAP_[1]}" "${_DEPENDENCY_SNAP_[2]}")
+        appsToInstallAPT+=("snapd" "snapd-xdg-open")
         serviceToStart+=("snapd")
     fi
 
     # FLATPAK
     if [ "$typeInstall" = "flatpak" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("${_DEPENDENCY_FLATPAK_[@]}")
+        appsToInstallAPT+=("torsocks" "flatpak" "xdg-desktop-portal-gtk" "gnome-software-plugin-flatpak")
     fi
 
     # LOCALE-PACKAGE
@@ -61,12 +49,12 @@ function installDependencies() {
 
     # WGET
     if [ "$typeInstall" = "wget" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("${_DEPENDENCY_WGET_[@]}")
+        appsToInstallAPT+=("wget")
     fi
 
     # GIT
     if [ "$typeInstall" = "git" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("${_DEPENDENCY_GIT_[@]}")
+        appsToInstallAPT+=("git")
     fi
 
     # Install APT
@@ -87,15 +75,16 @@ function installDependencies() {
 function validateDependencies() {
     local -a dependencyArray
     case "$1" in
-        apt) dependencyArray=("${_DEPENDENCY_APT_[@]}") ;;
-        deb) dependencyArray=("${_DEPENDENCY_DEB_[@]}") ;;
-        rpm) dependencyArray=("${_DEPENDENCY_SUDO_[@]}") ;;
-        gnome-shell-ext) dependencyArray=("${_DEPENDENCY_GNOME_SHELL_EXT_[@]}") ;;
-        snap) dependencyArray=("${_DEPENDENCY_SNAP_[@]}") ;;
-        flatpak) dependencyArray=("${_DEPENDENCY_FLATPAK_[@]}") ;;
-        locale-package) dependencyArray=("${_DEPENDENCY_LOCALE_PACKAGE_[@]}") ;;
-        dconf) dependencyArray=("${_DEPENDENCY_DCONF_[@]}") ;;
-        wget) dependencyArray=("${_DEPENDENCY_WGET_[@]}") ;;
+        apt) dependencyArray=("add-apt-repository" "apt" "dpkg") ;;
+        deb) dependencyArray=("gdebi") ;;
+        rpm) dependencyArray=("alien") ;;
+        gnome-shell-ext) dependencyArray=("unzip" "gnome-shell-extension-tool") ;;
+        snap) dependencyArray=("snap") ;;
+        flatpak) dependencyArray=("torsocks" "flatpak") ;;
+        locale-package) dependencyArray=("locale" "check-language-support") ;;
+        dconf) dependencyArray=("dconf") ;;
+        wget) dependencyArray=("wget") ;;
+        git) dependencyArray=("git") ;;
         *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
     esac
     
