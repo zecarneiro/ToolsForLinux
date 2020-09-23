@@ -39,11 +39,11 @@
         1. Mudar para a \<branch>
         2. ```git rebase origin/<branch_1>```
 - **LOG:** ```git log```
-    + **TAG:**
-        1. Localizar o ID_LOG
-        2. ```git tag 1.0.0 ID_LOG```     (1.0.0 - Versão)
-    + **ESTADO_ACTUAL:** ```git status```
-    + **DIFF:** ```git diff <branch origem> <branch destino>``` (*Mostra as diferenças entre origem e destino*)
+- **TAG:**
+    1. Localizar o ID_LOG
+    2. ```git tag 1.0.0 ID_LOG```     (1.0.0 - Versão)
+- **ESTADO_ACTUAL:** ```git status```
+- **DIFF:** ```git diff <branch origem> <branch destino>``` (*Mostra as diferenças entre origem e destino*)
 
 ## Rebase iterativo
 1. Localizar o ID_LOG (*Normalmente pegar o 3º ID_LOG a contar do ultimo commit*)
