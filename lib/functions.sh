@@ -1,38 +1,28 @@
 #!/bin/bash
 # Author: José M. C. Noronha
 
-function printWithPropont() {
-    local propont_name="\$"  
-    [[ -n "$2" ]] && propont_name="$2"    
-    echo -e "${LIGHTCYAN}${propont_name}>${NOCOLOR} ${1}"
-}
-
 : '
-Print Messages by type with color. ARGS:
-    ARG1:
-        1 - SUCCESS
-        2 - WARNING
-        3 - INFO
-        4 - ERROR
-    ARG2: Messages to print
-    ARG3: Print code of error
-    ARG4: Function name. To get function name: ${FUNCNAME[0]}
-'
-function printMessages() {
-    local msg="$1"
-    local typeMSG="$2"
-    local functionName=""    
-    [[ -n "$3" ]] && functionName="$3: "
+    Show Messages
 
-    case "$typeMSG" in
-        1) msg="${GREEN}${functionName}$msg${NOCOLOR}" ;;
-        2) msg="${YELLOW}${functionName}$msg${NOCOLOR}" ;;
-        3) msg="${BLUE}${functionName}$msg${NOCOLOR}" ;;
-        4) msg="${RED}ERROR ${functionName}$msg" ;;
-        *) msg="${functionName}$msg" ;;
+    ARGS:
+    MSG =           $1
+    TYPE_MSG =      $2 (1 = SUCCESS|2 = WARNING|3 = INFO|4 = ERROR)
+    FUNC_NAME =     $3
+'
+function showMessages() {
+    local msg="$1"
+    local typeMsg="$2"
+    local functionName="$3"
+
+    case "$typeMsg" in
+        1) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" GREEN "$functionName" ;;
+        2) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" YELLOW "$functionName" ;;
+        3) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" BLUE "$functionName" ;;        
+        4) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "ERROR $msg" RED "$functionName" ;;
+        *) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" "" "$functionName" ;;
     esac
-    printWithPropont "$msg" "${_ALIAS_TOOLSFORLINUX_}"
 }
+
 
 function exitError() {
     if (( $1 > 0 )); then
@@ -46,7 +36,7 @@ function isCommandExist() {
     command -v $commands >/dev/null && {
         return 0
     } || {
-        printMessages "COMMAND [$commands] could not be found" 2 $functionName
+        showMessages "COMMAND [$commands] could not be found" 2 $functionName
         return $_CODE_EXIT_ERROR_
     }
 }
@@ -57,7 +47,9 @@ function isCommandExist() {
 '
 function executeCMD() {
     if [ -z "$2" ]; then
-        printWithPropont "${DARKGRAY}${1}${NOCOLOR}" "${_ALIAS_TOOLSFORLINUX_}"
+        . "$_TOOLSFORLINUX_SCRIPT_" others print-message "${_ALIAS_TOOLSFORLINUX_}> " LIGHTCYAN "" 1
+        . "$_TOOLSFORLINUX_SCRIPT_" others print-message "${1}" DARKGRAY "" 1
+        echo ""
     fi
     eval "$1"
     return $?

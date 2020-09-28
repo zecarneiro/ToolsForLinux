@@ -29,7 +29,8 @@ _System_completions() {
 _Others_completions() {
     local sugestions=""
     local -a othersArgs=("clear-screen" "to-binary" "cidr-calculator" "trim" "cut-string-by-separator")
-    othersArgs+=("exec-cmd-get-output" "create-table" "dconf" "http-alias" "upper-lower-string" "disk-on-wsl" "print-md-file" "help")
+    othersArgs+=("exec-cmd-get-output" "create-table" "dconf" "http-alias" "upper-lower-string")
+    othersArgs+=("disk-on-wsl" "print-md-file" "print-message" "help")
 
     case $COMP_CWORD in
         2)

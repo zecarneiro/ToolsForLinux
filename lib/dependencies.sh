@@ -8,7 +8,7 @@ function installDependencies() {
     local -a appsToInstallAPT=()
     local -a serviceToStart=()
 
-    printMessages "Install $namePrint" 3
+    showMessages "Install $namePrint" 3
     . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-update
 
     # DEB
@@ -74,7 +74,7 @@ function installDependencies() {
             sudo service $service start
         fi
     done
-    printMessages "$namePrint Done" 1
+    showMessages "$namePrint Done" 1
 }
 
 function validateDependencies() {
@@ -91,7 +91,7 @@ function validateDependencies() {
         wget) dependencyArray=("wget") ;;
         git) dependencyArray=("git") ;;
         md-file) dependencyArray=("pandoc" "lynx") ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
+        *) showMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
     esac
     
     for dependency in "${dependencyArray[@]}"; do

@@ -12,7 +12,7 @@ function moveAllToMainFolder() {
     local maindir="$1"
     local namePrint="MOVE TO MAIN FOLDER"
 
-    printMessages "Init $namePrint" 3
+    showMessages "Init $namePrint" 3
 
     [[ -n "$maindir" ]] && {
         if [ -d "$maindir" ]; then
@@ -22,11 +22,11 @@ function moveAllToMainFolder() {
 
     find . -mindepth 2 -type f -print -exec mv {} . \;
     (( $? > 0 )) && {
-        printMessages "Operations Fail" 4 ${FUNCNAME[0]}
+        showMessages "Operations Fail" 4 ${FUNCNAME[0]}
         return $_CODE_EXIT_ERROR_
     } || {
         emptyFilesDirectory d delete
-        printMessages "$namePrin Done" 1
+        showMessages "$namePrin Done" 1
     }
     return $_CODE_EXIT_SUCCESS_
 }
@@ -45,29 +45,29 @@ function emptyFilesDirectory() {
     local errorcode=0
     local namePrint="Empty Files or Directory"
 
-    printMessages "Init List/Delete $namePrint" 3
+    showMessages "Init List/Delete $namePrint" 3
 
     case "$typeOfData" in
         f)
             case "$operations" in
                 list) find . -empty -type f -printf "\n%p\n"; errorcode="$?" ;;
                 delete) find . -empty -type f -printf "\n%p\n" -exec rm -R {} +; errorcode="$?" ;;
-                *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
+                *) showMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
             esac
         ;;
         d)
             case "$operations" in
                 list) find . -empty -type d -printf "\n%p\n"; errorcode="$?" ;;
                 delete) find . -empty -type d -printf "\n%p\n" -exec rm -R {} +; errorcode="$?" ;;
-                *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
+                *) showMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
             esac
         ;;      
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
+        *) showMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
     esac
     (( $errorcode > 0 )) && {
-        printMessages "Operactions Fail" 4 "${FUNCNAME[0]}"
+        showMessages "Operactions Fail" 4 "${FUNCNAME[0]}"
         exitError $errorcode
-    } || printMessages "$namePrint Done" 1
+    } || showMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -86,7 +86,7 @@ function createShortcuts() {
     local namePrint="Create symbolic links"
     local errorcode
 
-    printMessages "$namePrint for: $file" 3
+    showMessages "$namePrint for: $file" 3
     if [ -n "$file" ]; then        
         if [ -f "$file" ]||[ -d "$file" ]; then
             # Get name of file if not set
@@ -97,8 +97,8 @@ function createShortcuts() {
                 executeCMD "ln -sf \"$file\" \"$dest/${shortcuts_name}\""
                 errorcode=$?
                 (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
-                    printMessages "Operations fail" 4 "${FUNCNAME[0]}"
-                    printMessages "Try again with sudo"
+                    showMessages "Operations fail" 4 "${FUNCNAME[0]}"
+                    showMessages "Try again with sudo"
 
                     executeCMD "sudo ln -sf \"$file\" \"$dest/${shortcuts_name}\""
                     errorcode=$?
@@ -106,22 +106,22 @@ function createShortcuts() {
 
                 # If error persist, exit
                 (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
-                    printMessages "Operations fail" 4 "${FUNCNAME[0]}"
+                    showMessages "Operations fail" 4 "${FUNCNAME[0]}"
                     return $_CODE_EXIT_ERROR_
                 }
             else
-                printMessages "Invalid File name" 4 "${FUNCNAME[0]}"
+                showMessages "Invalid File name" 4 "${FUNCNAME[0]}"
                 return $_CODE_EXIT_ERROR_
             fi
         else
-            printMessages "File or Dir not exist!!" 4 "${FUNCNAME[0]}"
+            showMessages "File or Dir not exist!!" 4 "${FUNCNAME[0]}"
             return $_CODE_EXIT_ERROR_
         fi
     else
-        printMessages "Invalid File inserted" 4 "${FUNCNAME[0]}"
+        showMessages "Invalid File inserted" 4 "${FUNCNAME[0]}"
         return $_CODE_EXIT_ERROR_
     fi
-    printMessages "$namePrint Done" 1
+    showMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -144,7 +144,7 @@ function desktopFile() {
     local icon="$4"
     local extradata="$5"
     local homePath="$(echo $HOME)"
-    local nameFile="$($_ALIAS_TOOLSFORLINUX_ others upper-lower-string upper "$name")"
+    local nameFile="$($_TOOLSFORLINUX_SCRIPT_ others upper-lower-string upper "$name")"
     local -A keysData=(
         ['name']="%NAME%"
         ['exec']="%CMD_TO_EXEC%"
@@ -167,7 +167,7 @@ function desktopFile() {
         Type=Application\n
     "
 
-    printMessages "Init $namePrint" 3
+    showMessages "Init $namePrint" 3
     case "$operations" in
         boot)
             desktopPath="$homePath/.config/autostart"
@@ -186,7 +186,7 @@ function desktopFile() {
             desktopFile="$desktopPath/$nameFile.desktop"
             mkdir -p "$desktopPath"
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
+        *) showMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
     esac
     
     # Insert extra data
@@ -197,7 +197,7 @@ function desktopFile() {
 
     # Validate name
     [ -z "$name" ]||[ -z "$exec" ] && {
-        printMessages "Desktop files must be have an valid name and command executable" 4 "${FUNCNAME[0]}"
+        showMessages "Desktop files must be have an valid name and command executable" 4 "${FUNCNAME[0]}"
         return $_CODE_EXIT_ERROR_
     }
 
@@ -205,7 +205,7 @@ function desktopFile() {
     if [[ "$terminal" = "true" ]]||[[ "$terminal" =~ "false" ]]; then
         desktopData="${desktopData//${keysData[terminal]}/$terminal}"
     else
-        printMessages "Desktop files terminal must be true|false" 4 "${FUNCNAME[0]}"
+        showMessages "Desktop files terminal must be true|false" 4 "${FUNCNAME[0]}"
         return $_CODE_EXIT_ERROR_      
     fi
 
@@ -225,7 +225,7 @@ function desktopFile() {
     # Set permission to exec
     chmod +x "$desktopFile"
 
-    printMessages "$namePrint Done" 1
+    showMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -250,7 +250,7 @@ function downloadFromLink() {
             elif [ -d "$dest" ]; then
                 argsCMD="-P \"$dest\""
             else
-                printMessages "Invalid dir" 4 "${FUNCNAME[0]}"
+                showMessages "Invalid dir" 4 "${FUNCNAME[0]}"
                 return $_CODE_EXIT_ERROR_
             fi
         ;;
@@ -259,17 +259,17 @@ function downloadFromLink() {
             if [ -d "$dirFile" ]; then
                 argsCMD="-O \"$dest\""
             else
-                printMessages "Invalid dir for file: $dest" 4 "${FUNCNAME[0]}"
+                showMessages "Invalid dir for file: $dest" 4 "${FUNCNAME[0]}"
                 return $_CODE_EXIT_ERROR_
             fi
         ;;
-        *) printMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
+        *) showMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
     esac
 
 	# Download
     executeCMD "wget $argsCMD '$link'"
 	(( $? > $_CODE_EXIT_SUCCESS_ )) && {
-        printMessages "Operation Fail" 4 "${FUNCNAME[0]}"
+        showMessages "Operation Fail" 4 "${FUNCNAME[0]}"
         return $_CODE_EXIT_ERROR_
     }
     return $_CODE_EXIT_SUCCESS_
@@ -284,7 +284,7 @@ function HELP() {
     export TOOLFORLINUX_TABLE_MAX_COLUMN_CHAR="67"
 	local -a data=()
 
-    echo -e "$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[2]} <subcommand>\n\nSubcommand:"
+    echo -e "$_TOOLSFORLINUX_SCRIPT_ ${_SUBCOMMANDS_[2]} <subcommand>\n\nSubcommand:"
     data+=("\"move-to-main-folder [MAIN_FOLDER(OP)]\"" "\"Move all files to main folder\"")
     data+=("\"empty [f/d list/delete]\"" "\"List/Delete Empty Files or Directory\"")
     data+=("\"create-shortcuts [FILE DEST SHORTCUTS_NAME(OP)]\"" "\"Create Symbolic Link for an file\"")
@@ -307,8 +307,8 @@ case "$_OPERATIONS_APT_" in
     download) downloadFromLink "$@" ;;
     help) HELP ;;
     *)
-        messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[2]} help"
-        printMessages "${_MESSAGE_RUN_HELP_/\%MSG\%/$messageerror}" 4 "${FUNCNAME[0]}"
+        messageerror="$_TOOLSFORLINUX_SCRIPT_ ${_SUBCOMMANDS_[2]} help"
+        showMessages "${_MESSAGE_RUN_HELP_/\%MSG\%/$messageerror}" 4 "${FUNCNAME[0]}"
         exitError $_CODE_EXIT_ERROR_
     ;;
 esac

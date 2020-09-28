@@ -5,7 +5,6 @@ declare INSTALATION_FOLDER="/opt/ToolsForLinux"
 declare _LIB_="$INSTALATION_FOLDER/lib"
 declare _SRC_="$INSTALATION_FOLDER/src"
 declare _DOC_="$INSTALATION_FOLDER/doc"
-declare _ALIAS_TOOLSFORLINUX_="ToolsForLinux"
 declare -a _SUBCOMMANDS_=("system" "others" "files")
 
 # Import all necessary scripts
@@ -21,21 +20,21 @@ function docs() {
     local namePrint="DOC"
     local extension=".md"
     
-    printMessages "Show $namePrint" 3
+    showMessages "Show $namePrint" 3
     case "$1" in
         git)
             
-            . "$_ALIAS_TOOLSFORLINUX_" others print-md-file "$_DOC_/git${extension}"
+            . "$_TOOLSFORLINUX_SCRIPT_" others print-md-file "$_DOC_/git${extension}"
             errorcode=$?
         ;;
-        *) printMessages "Invalid arguments" 4 ${FUNCNAME[0]}; return $_CODE_EXIT_ERROR_ ;;
+        *) showMessages "Invalid arguments" 4 ${FUNCNAME[0]}; return $_CODE_EXIT_ERROR_ ;;
     esac
     
     (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
-        printMessages "Operation Fail" 4 ${FUNCNAME[0]}
+        showMessages "Operation Fail" 4 ${FUNCNAME[0]}
         return $errorcode
     }
-    printMessages "$namePrint Done" 1
+    showMessages "$namePrint Done" 1
     return $_CODE_EXIT_SUCCESS_
 }
 
@@ -47,7 +46,7 @@ function HELP() {
     export TOOLFORLINUX_TABLE_LENGTH_COLUMN="2"
     export TOOLFORLINUX_TABLE_MAX_COLUMN_CHAR="90"
 
-    echo -e "$_ALIAS_TOOLSFORLINUX_ <subcommand>\n\nSubcommand:"
+    echo -e "$_TOOLSFORLINUX_SCRIPT_ <subcommand>\n\nSubcommand:"
     data+=("${_SUBCOMMANDS_[0]}" "\"Execute operation necessary for system\"")
     data+=("${_SUBCOMMANDS_[1]}" "\"Execute others operations\"")
     data+=("${_SUBCOMMANDS_[2]}" "\"Execute operactions for files and directories\"")
@@ -68,8 +67,8 @@ case "$_OPERATIONS_" in
     docs) docs "$@" ;;
     help) HELP ;;
     *)
-        messageerror="$_ALIAS_TOOLSFORLINUX_ help"
-        printMessages "${_MESSAGE_RUN_HELP_/\%MSG\%/$messageerror}" 4 "${FUNCNAME[0]}"
+        messageerror="$_TOOLSFORLINUX_SCRIPT_ help"
+        showMessages "${_MESSAGE_RUN_HELP_/\%MSG\%/$messageerror}" RED "${FUNCNAME[0]}"
         exitError $_CODE_EXIT_ERROR_
     ;;
 esac
