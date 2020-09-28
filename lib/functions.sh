@@ -12,15 +12,19 @@
 function showMessages() {
     local msg="$1"
     local typeMsg="$2"
-    local functionName="$3"
+    local functionName=""
+    [[ -n $3 ]] && functionName="$3"
+
+    . "$_TOOLSFORLINUX_SCRIPT_" others print-message "${_ALIAS_TOOLSFORLINUX_}> " LIGHTCYAN "" 1
 
     case "$typeMsg" in
-        1) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" GREEN "$functionName" ;;
-        2) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" YELLOW "$functionName" ;;
-        3) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" BLUE "$functionName" ;;        
-        4) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "ERROR $msg" RED "$functionName" ;;
-        *) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" "" "$functionName" ;;
+        1) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" GREEN "$functionName" 1 ;;
+        2) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" YELLOW "$functionName" 1 ;;
+        3) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" BLUE "$functionName" 1 ;;        
+        4) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "ERROR $msg" RED "$functionName" 1 ;;
+        *) . "$_TOOLSFORLINUX_SCRIPT_" others print-message "$msg" "" "$functionName" 1 ;;
     esac
+    echo ""
 }
 
 
