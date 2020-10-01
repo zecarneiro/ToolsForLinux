@@ -76,3 +76,12 @@
 - **SET NAME|EMAIL:** ```git config [--global] user.name|user.email <name|email>```
 - **DISABLE CHECK PERMISSION CHANGE:** ```git config core.fileMode true|false```
 - **GET CONFIG:** ```git config --list [--global|--local]```
+- **IF USE GIT FROM WSL:** On git project execute ```git config core.autocrlf true```
+
+## Gerar SSH Key
+- **WSL**:
+    1. ```mkdir /mnt/c/Users/<username>/.ssh```
+    2. ```ln -s /mnt/c/Users/<username>/.ssh ~/.ssh```
+    3. ```ssh-keygen -t rsa -C "your_email@example.com"```
+    4. Chave para o GIT: ```cat ~/.ssh/id_rsa.pub```
+- **Outros:** Os mesmos pontos que o *WSL* excepto os pontos *1* e *2*

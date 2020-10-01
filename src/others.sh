@@ -499,7 +499,7 @@ function HELP() {
 	data+=("\"exec-cmd-get-output [COMMAND]\"" "\"Execute command and print result\"")
 	data+=("\"create-table [DATA_1 DATA_2...]\"" "\"Print data in table format\"")
 	data+=("\"dconf [backup|restore|reset DCONF_PATH BACKUP_FILE]\"" "\"Backup/Load and Reset dconf data. If reset backup file is not necessary\"")
-	data+=("\"http-alias [ADDRESS ALIAS]\"" "\"Set/Unset Alias for HTTP host\"")
+	data+=("\"http-alias [set|unset ADDRESS ALIAS]\"" "\"Set/Unset Alias for HTTP host\"")
 	data+=("\"upper-lower-string [upper|lower STRING]\"" "\"Upper/Lower an String\"")
 	data+=("\"disk-on-wsl [mount|umount LETTER_OF_DISK]\"" "\"Mount/Umount disk on WSL (IMPORTANT: Only work on WSL)\"")
 	data+=("\"print-md-file [FILE]\"" "\"Print MD Files\"")
