@@ -275,6 +275,42 @@ function downloadFromLink() {
     return $_CODE_EXIT_SUCCESS_
 }
 
+function convertTextFilesDosUnix() {
+    local type="$1"
+    local dirFile="$2"
+    local namePrint="Convert Text Files DOS To UNIX"
+    local -i errorcode=0
+
+    showMessages "Init $namePrint" 3
+    validateDependencies dos-to-unix
+    exitError $?
+
+    case "$type" in
+        dir)
+            [[ -d "$dirFile" ]] && {
+                find "$dirFile" -type f -print -exec dos2unix {} \;
+                errorcode=$?
+            } || errorcode=$_CODE_EXIT_ERROR_
+        ;;
+        file)
+            [[ -f "$dirFile" ]] && {
+                dos2unix "$dirFile"
+                errorcode=$?
+            } || errorcode=$_CODE_EXIT_ERROR_
+        ;;
+        *) showMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
+    esac
+
+    (( $errorcode > 0 )) && {
+        showMessages "Operations Fail" 4 ${FUNCNAME[0]}
+        return $_CODE_EXIT_ERROR_
+    } || {
+        showMessages "$namePrint Done" 1
+    }
+    return $_CODE_EXIT_SUCCESS_
+    
+}
+
 : '
 ####################### MAIN AREA #######################
 '
@@ -290,6 +326,7 @@ function HELP() {
     data+=("\"create-shortcuts [FILE DEST SHORTCUTS_NAME(OP)]\"" "\"Create Symbolic Link for an file\"")
     data+=("\"desktop-file [boot|normal NAME EXEC true|false ICON(OP) EXTRA(OP)]\"" "\"Create Desktop files. Term=\$4\"")
     data+=("\"download [dir|file LINK DEST(OP)]\"" "\"Dowload any data from link. If dir so DEST = PATH else DEST = FILE(path/for/file/name)\"")
+    data+=("\"dos-to-unix [dir|file]\"" "\"Convert DOS Text File to UNIX. If dir so DEST = PATH else DEST = FILE(path/for/file/name)\"")
     
     data+=("%EMPTY_LINE%")
     data+=("help" "Help")   
@@ -305,6 +342,7 @@ case "$_OPERATIONS_APT_" in
     create-shortcuts) createShortcuts "$@" ;;
     desktop-file) desktopFile "$@" ;;
     download) downloadFromLink "$@" ;;
+    dos-to-unix) convertTextFilesDosUnix "$@" ;;
     help) HELP ;;
     *)
         messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[2]} help"

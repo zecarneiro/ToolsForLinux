@@ -61,6 +61,12 @@ declare -A _DEPENDENCIES_MD_FILE_=(
     [service]=""
 )
 
+declare -A _DEPENDENCIES_DOS2UNIX_=(
+    [app]="dos2unix"
+    [command]="dos2unix"
+    [service]=""
+)
+
 function installDependencies() {
     local namePrint="Dependencies"
     local -a appsToInstallAPT=()
@@ -79,6 +85,7 @@ function installDependencies() {
     appsToInstallAPT+=(${_DEPENDENCIES_DCONF_[app]})
     appsToInstallAPT+=(${_DEPENDENCIES_WGET_[app]})
     appsToInstallAPT+=(${_DEPENDENCIES_MD_FILE_[app]})
+    appsToInstallAPT+=(${_DEPENDENCIES_DOS2UNIX_[app]})
 
     # Prepare all SERVICES
     serviceToStart+=(${_DEPENDENCIES_SNAP_[service]})
@@ -112,6 +119,7 @@ function validateDependencies() {
         dconf) dependencyArray=(${_DEPENDENCIES_DCONF_[command]}) ;;
         wget) dependencyArray=(${_DEPENDENCIES_WGET_[command]}) ;;
         md-file) dependencyArray=(${_DEPENDENCIES_MD_FILE_[command]}) ;;
+        dos-to-unix) dependencyArray=(${_DEPENDENCIES_DOS2UNIX_[command]}) ;;
         *) showMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
     esac
     
