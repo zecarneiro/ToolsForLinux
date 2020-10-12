@@ -7,7 +7,7 @@ _System_completions() {
     systemArgs+=("snap-update" "snap-installed" "snap-app")
     systemArgs+=("flatpak-update" "flatpak-installed" "flatpak-repository" "flatpak-app")
     systemArgs+=("fix-locale-package" "reload-gnome-shell" "system-upgrade" "is-service-active" "pid-kill")
-    systemArgs+=("check-graphic-vendor" "help")
+    systemArgs+=("check-graphic-vendor" "set-change-password" "help")
 
     case $COMP_CWORD in
         2)
@@ -17,9 +17,10 @@ _System_completions() {
         3)
             sugestions=""
             case "${COMP_WORDS[2]}" in
-                apt-repository|apt-app|flatpak-repository|flatpak-app) sugestions="i u" ;;
+                apt-repository|apt-app|flatpak-repository|flatpak-app) sugestions="i i-no-recommends u" ;;
                 snap-app) sugestions="i i-classic u" ;;
                 system-upgrade) sugestions="apt snap flatpak all" ;;
+                set-change-password) sugestions="other-user user group" ;;
             esac
             COMPREPLY=( $(compgen -W "${sugestions}" -- "${COMP_WORDS[COMP_CWORD]}") )
         ;;
@@ -97,16 +98,6 @@ _ToolsForLinux_completions() {
                 _Others_completions
             elif [ "${COMP_WORDS[1]}" = "${toolsForLinuxArgs[2]}" ]; then
                 _Files_completions
-            elif [ "${COMP_WORDS[1]}" = "${toolsForLinuxArgs[3]}" ]; then
-                (( $COMP_CWORD < 3 )) && {
-                    sugestions="all deb rpm gnome-shell-ext snap flatpak locale-package dconf wget git md-file"
-                    COMPREPLY=( $(compgen -W "${sugestions}" -- "${COMP_WORDS[COMP_CWORD]}") )
-                }
-            elif [ "${COMP_WORDS[1]}" = "${toolsForLinuxArgs[4]}" ]; then
-                (( $COMP_CWORD < 3 )) && {
-                    sugestions="git"
-                    COMPREPLY=( $(compgen -W "${sugestions}" -- "${COMP_WORDS[COMP_CWORD]}") )
-                }
             fi
         ;;
     esac

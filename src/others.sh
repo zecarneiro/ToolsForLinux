@@ -88,7 +88,7 @@ function cidrCalculator() {
 '
 function trim() {
     local word="$1"
-    echo "$word" | xargs
+	echo "$word" | awk '{$1=$1};1'
 }
 
 : '
@@ -490,7 +490,7 @@ function HELP() {
     export TOOLFORLINUX_TABLE_MAX_COLUMN_CHAR="55"
 	local -a data=()
 
-    echo -e "$_TOOLSFORLINUX_SCRIPT_ ${_SUBCOMMANDS_[1]} <subcommand>\n\nSubcommand:"
+    echo -e "$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[1]} <subcommand>\n\nSubcommand:"
 	data+=("clear-screen" "\"Clear screen\"")
     data+=("\"to-binary [NUMBER]\"" "\"Convert number to binary\"")
     data+=("\"cidr-calculator [IPv4]\"" "\"CIDR Calculator\"")
@@ -532,7 +532,7 @@ case "$_OPERATIONS_APT_" in
 	print-message) printMessage "$@" ;;
 	help) HELP ;;
 	*)
-        messageerror="$_TOOLSFORLINUX_SCRIPT_ ${_SUBCOMMANDS_[1]} help"
+        messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[1]} help"
         showMessages "${_MESSAGE_RUN_HELP_/\%MSG\%/$messageerror}" 4 "${FUNCNAME[0]}"
         exitError $_CODE_EXIT_ERROR_
     ;;

@@ -1,69 +1,91 @@
 #!/bin/bash
 # Author: José M. C. Noronha
 
+declare -A _DEPENDENCIES_APT_=(
+    [app]=""
+    [command]="add-apt-repository apt dpkg"
+    [service]=""
+)
+
+declare -A _DEPENDENCIES_DEB_=(
+    [app]="gdebi"
+    [command]="gdebi"
+    [service]=""
+)
+
+declare -A _DEPENDENCIES_RPM_=(
+    [app]="alien"
+    [command]="alien"
+    [service]=""
+)
+
+declare -A _DEPENDENCIES_GNOME_SHELL_EXT_=(
+    [app]="unzip"
+    [command]="unzip gnome-shell-extension-tool"
+    [service]=""
+)
+
+declare -A _DEPENDENCIES_SNAP_=(
+    [app]="snapd snapd-xdg-open"
+    [command]="snapd"
+    [service]="snapd"
+)
+
+declare -A _DEPENDENCIES_FLATPAK_=(
+    [app]="torsocks flatpak xdg-desktop-portal-gtk gnome-software-plugin-flatpak"
+    [command]="torsocks flatpak"
+    [service]=""
+)
+
+declare -A _DEPENDENCIES_LOCALE_PACKAGE_=(
+    [app]="language-selector-common"
+    [command]="locale check-language-support"
+    [service]=""
+)
+
+declare -A _DEPENDENCIES_DCONF_=(
+    [app]="dconf-editor dconf-tools"
+    [command]="dconf"
+    [service]=""
+)
+
+declare -A _DEPENDENCIES_WGET_=(
+    [app]="wget"
+    [command]="wget"
+    [service]=""
+)
+
+declare -A _DEPENDENCIES_MD_FILE_=(
+    [app]="pandoc lynx"
+    [command]="pandoc lynx"
+    [service]=""
+)
+
 function installDependencies() {
-    local typeInstall="$1"
-    local typeInstallAll="all"
     local namePrint="Dependencies"
     local -a appsToInstallAPT=()
     local -a serviceToStart=()
 
     showMessages "Install $namePrint" 3
-    . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-update
+    #. "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-update
 
-    # DEB
-    if [ "$typeInstall" = "deb" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("gdebi")
-    fi
+    # Prepare all APPS
+    appsToInstallAPT+=(${_DEPENDENCIES_DEB_[app]})
+    appsToInstallAPT+=(${_DEPENDENCIES_RPM_[app]})
+    appsToInstallAPT+=(${_DEPENDENCIES_GNOME_SHELL_EXT_[app]})
+    appsToInstallAPT+=(${_DEPENDENCIES_SNAP_[app]})
+    appsToInstallAPT+=(${_DEPENDENCIES_FLATPAK_[app]})
+    appsToInstallAPT+=(${_DEPENDENCIES_LOCALE_PACKAGE_[app]})
+    appsToInstallAPT+=(${_DEPENDENCIES_DCONF_[app]})
+    appsToInstallAPT+=(${_DEPENDENCIES_WGET_[app]})
+    appsToInstallAPT+=(${_DEPENDENCIES_MD_FILE_[app]})
 
-    # RPM
-    if [ "$typeInstall" = "rpm" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("alien")
-    fi
+    # Prepare all SERVICES
+    serviceToStart+=(${_DEPENDENCIES_SNAP_[service]})
 
-    # GNOME-SHELL-EXT
-    if [ "$typeInstall" = "gnome-shell-ext" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("unzip")
-    fi
-
-    # SNAP
-    if [ "$typeInstall" = "snap" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("snapd" "snapd-xdg-open")
-        serviceToStart+=("snapd")
-    fi
-
-    # FLATPAK
-    if [ "$typeInstall" = "flatpak" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("torsocks" "flatpak" "xdg-desktop-portal-gtk" "gnome-software-plugin-flatpak")
-    fi
-
-    # LOCALE-PACKAGE
-    if [ "$typeInstall" = "locale-package" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("language-selector-common")
-    fi
-
-    # DCONF-EDITOR
-    if [ "$typeInstall" = "dconf" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("dconf-editor")
-    fi
-
-    # WGET
-    if [ "$typeInstall" = "wget" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("wget")
-    fi
-
-    # GIT
-    if [ "$typeInstall" = "git" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("git")
-    fi
-
-    # MD-FILE
-    if [ "$typeInstall" = "md-file" ]||[ "$typeInstall" = "$typeInstallAll" ]; then
-        appsToInstallAPT+=("pandoc" "lynx")
-    fi
-
-    # Install APT
+    # INSTALL ALL APPS
     . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-app i "${appsToInstallAPT[@]}"
+    
 
     # Run Services
     for service in "${serviceToStart[@]}"; do
@@ -80,17 +102,16 @@ function installDependencies() {
 function validateDependencies() {
     local -a dependencyArray
     case "$1" in
-        apt) dependencyArray=("add-apt-repository" "apt" "dpkg") ;;
-        deb) dependencyArray=("gdebi") ;;
-        rpm) dependencyArray=("alien") ;;
-        gnome-shell-ext) dependencyArray=("unzip" "gnome-shell-extension-tool") ;;
-        snap) dependencyArray=("snap") ;;
-        flatpak) dependencyArray=("torsocks" "flatpak") ;;
-        locale-package) dependencyArray=("locale" "check-language-support") ;;
-        dconf) dependencyArray=("dconf") ;;
-        wget) dependencyArray=("wget") ;;
-        git) dependencyArray=("git") ;;
-        md-file) dependencyArray=("pandoc" "lynx") ;;
+        apt) dependencyArray=(${_DEPENDENCIES_APT_[command]}) ;;
+        deb) dependencyArray=(${_DEPENDENCIES_DEB_[command]}) ;;
+        rpm) dependencyArray=(${_DEPENDENCIES_RPM_[command]}) ;;
+        gnome-shell-ext) dependencyArray=(${_DEPENDENCIES_GNOME_SHELL_EXT_[command]}) ;;
+        snap) dependencyArray=(${_DEPENDENCIES_SNAP_[command]}) ;;
+        flatpak) dependencyArray=(${_DEPENDENCIES_FLATPAK_[command]}) ;;
+        locale-package) dependencyArray=(${_DEPENDENCIES_LOCALE_PACKAGE_[command]}) ;;
+        dconf) dependencyArray=(${_DEPENDENCIES_DCONF_[command]}) ;;
+        wget) dependencyArray=(${_DEPENDENCIES_WGET_[command]}) ;;
+        md-file) dependencyArray=(${_DEPENDENCIES_MD_FILE_[command]}) ;;
         *) showMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
     esac
     

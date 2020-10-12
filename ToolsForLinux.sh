@@ -46,11 +46,11 @@ function HELP() {
     export TOOLFORLINUX_TABLE_LENGTH_COLUMN="2"
     export TOOLFORLINUX_TABLE_MAX_COLUMN_CHAR="90"
 
-    echo -e "$_TOOLSFORLINUX_SCRIPT_ <subcommand>\n\nSubcommand:"
+    echo -e "$_ALIAS_TOOLSFORLINUX_ <subcommand>\n\nSubcommand:"
     data+=("${_SUBCOMMANDS_[0]}" "\"Execute operation necessary for system\"")
     data+=("${_SUBCOMMANDS_[1]}" "\"Execute others operations\"")
     data+=("${_SUBCOMMANDS_[2]}" "\"Execute operactions for files and directories\"")
-    data+=("\"install-dependencies [deb|rpm|gnome-shell-ext|snap|flatpak|locale-package|dconf|wget|git|md-file]\"" "\"Execute operactions for files and directories\"")
+    data+=("install-dependencies" "\"Install dependencies\"")
 
     data+=("%EMPTY_LINE%")
     data+=("help" "Help")
@@ -63,11 +63,11 @@ case "$_OPERATIONS_" in
     system) . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" "$@" ;;
     others) . "$_SRC_/${_SUBCOMMANDS_[1]}.sh" "$@" ;;
     files) . "$_SRC_/${_SUBCOMMANDS_[2]}.sh" "$@" ;;
-    install-dependencies) installDependencies "$@" ;;
+    install-dependencies) installDependencies ;;
     docs) docs "$@" ;;
     help) HELP ;;
     *)
-        messageerror="$_TOOLSFORLINUX_SCRIPT_ help"
+        messageerror="$_ALIAS_TOOLSFORLINUX_ help"
         showMessages "${_MESSAGE_RUN_HELP_/\%MSG\%/$messageerror}" RED "${FUNCNAME[0]}"
         exitError $_CODE_EXIT_ERROR_
     ;;

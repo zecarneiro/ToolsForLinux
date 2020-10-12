@@ -284,12 +284,12 @@ function HELP() {
     export TOOLFORLINUX_TABLE_MAX_COLUMN_CHAR="67"
 	local -a data=()
 
-    echo -e "$_TOOLSFORLINUX_SCRIPT_ ${_SUBCOMMANDS_[2]} <subcommand>\n\nSubcommand:"
+    echo -e "$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[2]} <subcommand>\n\nSubcommand:"
     data+=("\"move-to-main-folder [MAIN_FOLDER(OP)]\"" "\"Move all files to main folder\"")
     data+=("\"empty [f/d list/delete]\"" "\"List/Delete Empty Files or Directory\"")
     data+=("\"create-shortcuts [FILE DEST SHORTCUTS_NAME(OP)]\"" "\"Create Symbolic Link for an file\"")
     data+=("\"desktop-file [boot|normal NAME EXEC true|false ICON(OP) EXTRA(OP)]\"" "\"Create Desktop files. Term=\$4\"")
-    data+=("\"download [dir|file LINK DEST(OP)]\"" "Dowload any data from link. If dir so DEST = PATH else DEST = FILE(path/for/file/name)")
+    data+=("\"download [dir|file LINK DEST(OP)]\"" "\"Dowload any data from link. If dir so DEST = PATH else DEST = FILE(path/for/file/name)\"")
     
     data+=("%EMPTY_LINE%")
     data+=("help" "Help")   
@@ -307,7 +307,7 @@ case "$_OPERATIONS_APT_" in
     download) downloadFromLink "$@" ;;
     help) HELP ;;
     *)
-        messageerror="$_TOOLSFORLINUX_SCRIPT_ ${_SUBCOMMANDS_[2]} help"
+        messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[2]} help"
         showMessages "${_MESSAGE_RUN_HELP_/\%MSG\%/$messageerror}" 4 "${FUNCNAME[0]}"
         exitError $_CODE_EXIT_ERROR_
     ;;

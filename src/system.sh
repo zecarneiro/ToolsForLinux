@@ -191,7 +191,7 @@ function repositoryAPT() {
     Install/Uninstall APT APP
 
     ARGS:
-    operation =     $1      (i|u)
+    operation =     $1      (i|i-no-recommends|u)
     apps =          $@
 '
 function appAPT() {
@@ -231,7 +231,7 @@ function appAPT() {
                     executeCMD "$cmdRun"
                     (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         showMessages "Error on install $app" 4 ${FUNCNAME[0]}
-                        errorAPP="$errorAPP $app; "
+                        errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
                     } || showMessages "$app installed" 1
                 } || showMessages "APP $app already installed!!!" 2
@@ -241,7 +241,7 @@ function appAPT() {
                     executeCMD "$cmdRun"
                     (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         showMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
-                        errorAPP="$errorAPP $app; "
+                        errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
                     } || showMessages "$app uninstalled" 1
                 } || showMessages "APP $ppa not installed!!!" 2
@@ -468,7 +468,7 @@ function appSNAP() {
                     fi
                     (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
                         showMessages "Error on install $app" 4 ${FUNCNAME[0]}
-                        errorAPP="$errorAPP $app; "
+                        errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
                     } || showMessages "$app installed" 1
                 } || showMessages "APP $app already installed!!!" 2
@@ -478,7 +478,7 @@ function appSNAP() {
                     executeCMD "$cmdRun"
                     (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         showMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
-                        errorAPP="$errorAPP $app; "
+                        errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
                     } || showMessages "$app uninstalled" 1
                 } || showMessages "APP $ppa not installed!!!" 2
@@ -642,7 +642,7 @@ function appFLATPAK() {
                     executeCMD "$cmdRun"
                     (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         showMessages "Error on install $app" 4 ${FUNCNAME[0]}
-                        errorAPP="$errorAPP $app; "
+                        errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
                     } || showMessages "$app installed" 1
                 } || showMessages "APP $app already installed!!!" 2
@@ -652,7 +652,7 @@ function appFLATPAK() {
                     executeCMD "$cmdRun"
                     (( $? > $_CODE_EXIT_SUCCESS_ )) && {
                         showMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
-                        errorAPP="$errorAPP $app; "
+                        errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
                     } || showMessages "$app uninstalled" 1
                 } || showMessages "APP $ppa not installed!!!" 2
@@ -830,6 +830,32 @@ function checkGraphicVendor() {
 	(( $exist > 0 )) && echo $_TRUE_ || echo $_FALSE_
 }
 
+function SetChangePassoword() {
+    local userOrGroup="$1"
+    local namePrint="Set/Change Passoword"
+    local errorcode
+
+    showMessages "$namePrint" 3
+    case "$1" in
+        other-user)
+            if [ -z "$userOrGroup" ]; then
+                showMessages "Ivalid user: $userOrGroup" 4
+                return $_CODE_EXIT_ERROR_
+            fi
+            sudo passwd "$userOrGroup"
+            errorcode=$?
+        ;;
+        user) sudo passwd; errorcode=$? ;;
+        group) sudo passwd -g "$userOrGroup"; errorcode=$? ;;
+        *) showMessages "Invalid arguments" 4 "${FUNCNAME[0]}"; return $_CODE_EXIT_ERROR_ ;;
+    esac
+    
+    (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
+        showMessages "Operations Fail" 4 "${FUNCNAME[0]}"
+        return $errorcode
+    }
+}
+
 : '
 ####################### MAIN AREA #######################
 '
@@ -839,13 +865,13 @@ function HELP() {
     export TOOLFORLINUX_TABLE_MAX_COLUMN_CHAR="50"
 	local -a data=()
 
-    echo -e "$_TOOLSFORLINUX_SCRIPT_ ${_SUBCOMMANDS_[1]} <subcommand>\n\nSubcommand:"
+    echo -e "$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[0]} <subcommand>\n\nSubcommand:"
     data+=("apt-clean" "\"Clear all APT app data and uninstall unecessary apt apps\"")
     data+=("apt-update" "\"Update APT repository\"")
     data+=("apt-upgrade" "\"Upgrade APT System\"")
     data+=("\"apt-installed [APP(OP)]\"" "\"Get List of App APT Installed\"")
     data+=("\"apt-repository [i|u PPA1 PPA2...]\"" "\"Install/Uninstall APT PPA\"")
-    data+=("\"apt-app [i|u APP1 APP2...]\"" "\"Install/Uninstall APT APP\"")
+    data+=("\"apt-app [i|i-no-recommends|u APP1 APP2...]\"" "\"Install/Uninstall APT APP\"")
 
     data+=("%EMPTY_LINE%")
     data+=("\"deb-files [DEB1 DEB2...]\"" "\"Install DEB Files\"")
@@ -870,6 +896,7 @@ function HELP() {
     data+=("\"is-service-active [service_name]\"" "\"Check service is active or not\"")
     data+=("\"pid-kill [pid]\"" "\"Kill APP by PID\"")
     data+=("\"check-graphic-vendor [GRAPHIC_VENDOR]\"" "\"Check if graphic vendor is installed\"")
+    data+=("\"set-change-password [other-user|user|group]\"" "\"Set or Change system password\"")
 
     data+=("%EMPTY_LINE%")
     data+=("help" "Help")
@@ -911,9 +938,10 @@ case "$_OPERATIONS_APT_" in
     is-service-active) isServiceActive "$@" ;;
     pid-kill) killPID "$@" ;;
     check-graphic-vendor) checkGraphicVendor "$@" ;;
+    set-change-password) SetChangePassoword "$@" ;;
     help) HELP ;;
     *)
-        messageerror="$_TOOLSFORLINUX_SCRIPT_ ${_SUBCOMMANDS_[0]} help"
+        messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[0]} help"
         showMessages "${_MESSAGE_RUN_HELP_/\%MSG\%/$messageerror}" 4 "${FUNCNAME[0]}"
         exitError $_CODE_EXIT_ERROR_
     ;;
