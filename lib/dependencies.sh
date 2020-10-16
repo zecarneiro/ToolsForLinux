@@ -73,7 +73,7 @@ function installDependencies() {
     local -a serviceToStart=()
 
     showMessages "Install $namePrint" 3
-    #. "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-update
+    . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" apt-update
 
     # Prepare all APPS
     appsToInstallAPT+=(${_DEPENDENCIES_DEB_[app]})
