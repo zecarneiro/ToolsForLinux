@@ -27,7 +27,7 @@ declare -A _DEPENDENCIES_GNOME_SHELL_EXT_=(
 
 declare -A _DEPENDENCIES_SNAP_=(
     [app]="snapd snapd-xdg-open"
-    [command]="snapd"
+    [command]="snap"
     [service]="snapd"
 )
 
