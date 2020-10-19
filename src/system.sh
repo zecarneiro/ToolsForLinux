@@ -482,7 +482,7 @@ function appSNAP() {
                         errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
                     } || showMessages "$app uninstalled" 1
-                } || showMessages "APP $ppa not installed!!!" 2
+                } || showMessages "APP $app not installed!!!" 2
             ;;
         esac
     done
