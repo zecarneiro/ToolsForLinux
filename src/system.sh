@@ -146,6 +146,7 @@ function repositoryAPT() {
     for repository in "$@"; do
         if [ ! -z "$(echo "$repository" | cut -d ":" -f2)" ]; then
             ppa="$(echo "$repository" | cut -d ":" -f2)"
+            repository="$ppa"
         fi
         existPPA=$(grep "^deb .*$repository" /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -c .)
         cmdRun="${cmd//"%REPOSITORY%"/$repository}"
