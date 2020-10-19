@@ -5,7 +5,7 @@ declare INSTALATION_FOLDER="/opt/ToolsForLinux"
 declare _LIB_="$INSTALATION_FOLDER/lib"
 declare _SRC_="$INSTALATION_FOLDER/src"
 declare _DOC_="$INSTALATION_FOLDER/doc"
-declare -a _SUBCOMMANDS_=("system" "others" "files")
+declare -a _SUBCOMMANDS_=("system" "others" "files" "git")
 
 # Import all necessary scripts
 . "$_LIB_/functions.sh"
@@ -50,6 +50,7 @@ function HELP() {
     data+=("${_SUBCOMMANDS_[0]}" "\"Execute operation necessary for system\"")
     data+=("${_SUBCOMMANDS_[1]}" "\"Execute others operations\"")
     data+=("${_SUBCOMMANDS_[2]}" "\"Execute operactions for files and directories\"")
+    data+=("${_SUBCOMMANDS_[3]}" "\"Execute operactions for git\"")
     data+=("install-dependencies" "\"Install dependencies\"")
 
     data+=("%EMPTY_LINE%")
@@ -63,6 +64,7 @@ case "$_OPERATIONS_" in
     system) . "$_SRC_/${_SUBCOMMANDS_[0]}.sh" "$@" ;;
     others) . "$_SRC_/${_SUBCOMMANDS_[1]}.sh" "$@" ;;
     files) . "$_SRC_/${_SUBCOMMANDS_[2]}.sh" "$@" ;;
+    git) . "$_SRC_/${_SUBCOMMANDS_[3]}.sh" "$@" ;;
     install-dependencies) installDependencies ;;
     docs) docs "$@" ;;
     help) HELP ;;

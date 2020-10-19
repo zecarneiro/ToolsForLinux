@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Global
-declare arg="$1"
+declare _GIT_GLOBAL_ARG_="--global "
+declare isGitExist="$(ls -a | grep -v '.gitignore' | grep -ci '.git')"
 
 function insertConfig(){
 	printf "\nInsert new Config\n"
@@ -35,26 +36,6 @@ function insertConfig(){
 
 	# Information
 	echo "INFORMATION: Please restart any git software..."
-}
-
-function disablePermissionCheck(){
-	local -i isGitExist="0"
-	local defaultPath="$( echo $PWD )"
-
-	echo "Default: $defaultPath"
-	read -p "Insert path to disable permission check(ENTER TO DEFAULT): " path
-
-	if [ -z "$path" ]; then
-		isGitExist="$(ls -a | grep -v '.gitignore' | grep -ci '.git')"
-	else
-		if [ -d $path ]; then
-			isGitExist="$(ls -a "$path" | grep -v '.gitignore' | grep -ci '.git')"	
-		fi
-	fi
-
-	if [ $isGitExist -gt 0 ]; then
-		git config core.fileMode false
-	fi
 }
 
 function getConfig(){
@@ -126,3 +107,66 @@ function main(){
 	esac
 }
 main
+
+function setDefaultConfig() {
+	local cmdFileMode="git config {0}core.fileMode false"
+	local cmdAutoSaveFilesWindowsMode="git config {0}core.autocrlf true"
+	
+	case "$1" in
+		local)
+			executeCMD "${cmdFileMode//\{0\}/''}"
+			executeCMD "${cmdAutoSaveFilesWindowsMode//\{0\}/''}"
+			
+		;;
+		global)
+			executeCMD "${cmdFileMode//\{0\}/$_GIT_GLOBAL_ARG_}"
+			executeCMD "${cmdAutoSaveFilesWindowsMode//\{0\}/$_GIT_GLOBAL_ARG_}"
+		;;
+		*)
+			echo "default"
+		;;
+	esac
+	
+}
+
+function gitCommands() {
+	case "$1" in
+		create-repository)
+			showMessages "${_EXECUTE_CMD_MSG_//\{0\}/'Create Repository'} for: $file" 3
+			showMessages "1 - git init"
+			showMessages "2 - git remote add origin <server>"
+		;;
+		create-copy-repository)
+			showMessages "${_EXECUTE_CMD_MSG_//\{0\}/'Create Copy of Repository'} for: $file" 3
+			showMessages "Local:	git clone /path/of/repository"
+			showMessages "Remote:	git clone usuário@servidor:/path/for/repository"
+		;;
+		add-changes-commit)
+			showMessages "${_EXECUTE_CMD_MSG_//\{0\}/'Add Changes and Commit'} for: $file" 3
+			showMessages "1 - \n\t# File: git add <file>\n\t# All: git add *"
+			showMessages "2 - git commit -m 'Message'"
+		;;
+		branch-opeations)
+			showMessages "${_EXECUTE_CMD_MSG_//\{0\}/'Branch Operations'} for: $file" 3
+			showMessages "Create:	git checkout -b <branch>"
+			showMessages "Change:	git checkout <branch>"
+			showMessages "Delete:	git branch -d <branch>"
+		;;
+		*)
+			echo "default"
+		;;
+	esac
+	
+}
+
+declare _OPERATIONS_GIT_="$1"; shift
+case "$_OPERATIONS_GIT_" in
+	get-commands) gitCommands "$@" ;;
+	set-default-config) setDefaultConfig "$@" ;;
+    help) HELP ;;
+    *)
+        messageerror="$_ALIAS_TOOLSFORLINUX_ ${_SUBCOMMANDS_[3]} help"
+        showMessages "${_MESSAGE_RUN_HELP_/\%MSG\%/$messageerror}" 4 "${FUNCNAME[0]}"
+        exitError $_CODE_EXIT_ERROR_
+    ;;
+esac

@@ -1,24 +1,8 @@
 # GIT COMMANDS
 
-## Criar um Repositorio e Adicionar a um servidor remoto
-1. ```git init```
-2. ```git remote add origin <servidor>```
 
-## Criar uma cópia de um repositório local/remoto
-- __LOCAL__: ```git clone /caminho/para/o/repositório```
-- __REMOTO__: ```git clone usuário@servidor:/caminho/para/o/repositório```
 
-## Adicionar mudanças ao index
-- ```git add <arquivo>```
-- ```git add *```
 
-## Confirmar as mudanças depois de adicionar
-- ```git commit -m "comentários das alterações"```
-
-## Criar/Eliminar ou Mudar o(de) branch
-- **CRIAR:** ```git checkout -b <branch>```
-- **MUDAR:** ```git checkout <branch>```
-- **ELIMINAR:** ```git branch -d <branch>```
 
 ## Enviando alterações e/ou novo <branch>
 - **NORMAL:** ```git push origin <branch>```
@@ -72,11 +56,14 @@
     1. ```git submodule rm <path_for_submodulo>```
     2. ```git rm --cached <path_for_submodulo>```
 
+    git submodule deinit <path_to_submodule>
+git rm <path_to_submodule>
+git commit-m "Removed submodule "
+rm -rf .git/modules/<path_to_submodule>
+
 ## OUTROS
 - **SET NAME|EMAIL:** ```git config [--global] user.name|user.email <name|email>```
-- **DISABLE CHECK PERMISSION CHANGE:** ```git config core.fileMode true|false```
 - **GET CONFIG:** ```git config --list [--global|--local]```
-- **IF USE GIT FROM WSL:** On git project execute ```git config core.autocrlf true```
 
 ## Gerar SSH Key
 - **WSL**:

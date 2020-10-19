@@ -906,8 +906,8 @@ function HELP() {
     printInformationHelp
 }
 
-declare _OPERATIONS_APT_="$1"; shift
-case "$_OPERATIONS_APT_" in
+declare _OPERATIONS_SYSTEM_="$1"; shift
+case "$_OPERATIONS_SYSTEM_" in
     # APT
     apt-clean) cleanSystemAPT ;;
     apt-update) updateAPT ;;

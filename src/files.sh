@@ -335,8 +335,8 @@ function HELP() {
     printInformationHelp
 }
 
-declare _OPERATIONS_APT_="$1"; shift
-case "$_OPERATIONS_APT_" in
+declare _OPERATIONS_FILES_="$1"; shift
+case "$_OPERATIONS_FILES_" in
     move-to-main-folder) moveAllToMainFolder "$@" ;;
     empty) emptyFilesDirectory "$@" ;;
     create-shortcuts) createShortcuts "$@" ;;

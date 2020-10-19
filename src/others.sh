@@ -515,8 +515,8 @@ function HELP() {
 	echo -e "\tGREEN\n\tYELLOW\n\tBLUE\n\tRED\n\tORANGE\n\tPURPLE\n\tCYAN\n\tLIGHTGRAY\n\tDARKGRAY\n\tLIGHTRED\n\tLIGHTGREEN\n\tLIGHTBLUE\n\tLIGHTPURPLE\n\tLIGHTCYAN\n\tWHITE"
 }
 
-declare _OPERATIONS_APT_="$1"; shift
-case "$_OPERATIONS_APT_" in
+declare _OPERATIONS_OTHERS_="$1"; shift
+case "$_OPERATIONS_OTHERS_" in
 	clear-screen) clearScreen ;;
 	to-binary) toBinary "$@" ;;
 	cidr-calculator) cidrCalculator "$@" ;;
