@@ -44,7 +44,7 @@ declare -A _DEPENDENCIES_LOCALE_PACKAGE_=(
 )
 
 declare -A _DEPENDENCIES_DCONF_=(
-    [app]="dconf-editor dconf-tools"
+    [app]="dconf-editor"
     [command]="dconf"
     [service]=""
 )
