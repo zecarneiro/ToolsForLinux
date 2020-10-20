@@ -88,7 +88,8 @@ function cidrCalculator() {
 '
 function trim() {
     local word="$1"
-	echo "$word" | awk '{$1=$1};1'
+	word="$(echo "$word" | awk '{$1=$1};1')"
+	echo "${word//[$'\r\n']}"
 }
 
 : '
