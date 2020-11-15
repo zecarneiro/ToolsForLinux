@@ -500,6 +500,19 @@ function appSNAP() {
 : '
 ####################### FLATPAK AREA #######################
 '
+function cleanSystemFLATPAK() {
+    local namePrint="Clean System for FLATPAK"
+
+    validateDependencies flatpak
+    exitError $?
+
+    showMessages "$namePrint" 3
+
+    executeCMD "flatpak uninstall --unused"
+    showMessages "$namePrint Done" 1
+	return $?
+}
+
 # Update/Upgrade Repository
 function updateFLATPAK() {
     local namePrint="Update/Upgrade Repository/APP FLATPAK"
@@ -660,7 +673,7 @@ function appFLATPAK() {
                         errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
                     } || {
-                        flatpak uninstall --unused1
+                        cleanSystemFLATPAK
                         showMessages "$app uninstalled" 1
                     }
                 } || showMessages "APP $ppa not installed!!!" 2
@@ -892,6 +905,7 @@ function HELP() {
     data+=("\"snap-app [i|i-classic|u APP1 APP2...]\"" "\"Install/Uninstall SNAP APP\"")
 
     data+=("%EMPTY_LINE%")
+    data+=("flatpak-clean", "\"Uninstall unecessary flatpak apps\"")
     data+=("flatpak-update" "\"Update/Upgrade Repository\"")
     data+=("\"flatpak-installed [APP(OP)]\"" "\"Get List of App FLATPAK Installed\"")
     data+=("\"flatpak-repository [i|u REMOTE1 REMOTE2...]\"" "\"Install/Uninstall FLATPAK Repository\"")
@@ -934,6 +948,7 @@ case "$_OPERATIONS_APT_" in
     snap-app) appSNAP "$@" ;;
 
     # Flatpak
+    flatpak-clean) cleanSystemFLATPAK ;;
     flatpak-update) updateFLATPAK ;;
     flatpak-installed) installedFLATPAK "$@" ;;
     flatpak-repository) repositoryFLATPAK "$@" ;;

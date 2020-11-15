@@ -5,7 +5,7 @@ _System_completions() {
     local -a systemArgs=("apt-clean" "apt-update" "apt-upgrade" "apt-installed" "apt-repository" "apt-app")
     systemArgs+=("deb-files" "rpm-files" "gnome-shell-extensions")
     systemArgs+=("snap-update" "snap-installed" "snap-app")
-    systemArgs+=("flatpak-update" "flatpak-installed" "flatpak-repository" "flatpak-app")
+    systemArgs+=("flatpak-clean" "flatpak-update" "flatpak-installed" "flatpak-repository" "flatpak-app")
     systemArgs+=("fix-locale-package" "reload-gnome-shell" "system-upgrade" "is-service-active" "pid-kill")
     systemArgs+=("check-graphic-vendor" "set-change-password" "help")
 
