@@ -660,7 +660,7 @@ function appFLATPAK() {
                         errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
                     } || {
-                        flatpak uninstall --unused
+                        flatpak uninstall --unused1
                         showMessages "$app uninstalled" 1
                     }
                 } || showMessages "APP $ppa not installed!!!" 2
