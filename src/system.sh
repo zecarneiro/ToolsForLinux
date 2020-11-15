@@ -54,6 +54,8 @@ function updateAPT() {
 function upgradeAPT() {
     local errorcode
     local upgradableApp
+    local -i count=0
+    local -i maxCount=3
     local -i countUpgradableApp
     local namePrint="Upgrade APP APT"
 
@@ -64,7 +66,7 @@ function upgradeAPT() {
     showMessages "$namePrint" 3
 
 	# Upgrade System
-	while [ 1 ]; do
+	while (($count > $maxCount)); do
         upgradableApp=$(executeCMD "sudo apt list --upgradable" 1)
         errorcode=$?
         (( $errorcode > $_CODE_EXIT_SUCCESS_ )) && {
@@ -85,6 +87,8 @@ function upgradeAPT() {
             showMessages "Operations Fail" 4 "${FUNCNAME[0]}"
             return $errorcode
         }
+
+        count=$((count+1))
 	done
     showMessages "$namePrint DONE" 1
     return $_CODE_EXIT_SUCCESS_
@@ -655,7 +659,10 @@ function appFLATPAK() {
                         showMessages "Error on uninstall $app" 4 ${FUNCNAME[0]}
                         errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
-                    } || showMessages "$app uninstalled" 1
+                    } || {
+                        flatpak uninstall --unused
+                        showMessages "$app uninstalled" 1
+                    }
                 } || showMessages "APP $ppa not installed!!!" 2
             ;;
         esac
