@@ -500,6 +500,35 @@ function appSNAP() {
 : '
 ####################### FLATPAK AREA #######################
 '
+function giveAccessAppFLATPAK() {
+    local namePrint="Give Access for FLATPAK app"
+    local appName="$1"; shift
+    local typeAccess=($2)
+    local cmd="sudo flatpak override ${appName}"
+    local -i count=0
+
+    validateDependencies flatpak
+    exitError $?
+
+    showMessages "$namePrint" 3
+    if [[ -z "$appName" ]]; then showMessages "Invalid app: $appName" 4 "${FUNCNAME[0]}"; fi
+
+    for access in "${typeAccess[@]}"; do
+        showMessages "FLATPAK GIVE ACCESS FILESYSTEM: To: $appName - ACCESS: $access"
+        if [[ "$access" != "home" ]]&&[[ "$access" != "host" ]]; then
+            if [[ ! -d "$access" ]]; then
+                showMessages "Invalid path: $access" 4 "${FUNCNAME[0]}"
+                continue
+            fi
+        fi
+        cmd="${cmd} --filesystem='${access}'"
+        count=$((count+1))
+    done
+    (($count > 0)) && executeCMD "$cmd"
+    showMessages "$namePrint Done" 1
+	return $?
+}
+
 function cleanSystemFLATPAK() {
     local namePrint="Clean System for FLATPAK"
 
@@ -637,7 +666,7 @@ function appFLATPAK() {
 
     case "$operation" in
         i)
-            cmd="flatpak install --user %APP%"
+            cmd="flatpak install %APP%"
             cmd="${cmd} || torsocks ${cmd}"
             errorAPP="INSTALL FAIL APP: "
         ;;
@@ -905,6 +934,7 @@ function HELP() {
     data+=("\"snap-app [i|i-classic|u APP1 APP2...]\"" "\"Install/Uninstall SNAP APP\"")
 
     data+=("%EMPTY_LINE%")
+    data+=("\"flatpak-give-access [APP home|host|PATH\"", "\"Give Access to app, like home host PATH(Or One of then)\"")
     data+=("flatpak-clean", "\"Uninstall unecessary flatpak apps\"")
     data+=("flatpak-update" "\"Update/Upgrade Repository\"")
     data+=("\"flatpak-installed [APP(OP)]\"" "\"Get List of App FLATPAK Installed\"")
@@ -948,6 +978,7 @@ case "$_OPERATIONS_APT_" in
     snap-app) appSNAP "$@" ;;
 
     # Flatpak
+    flatpak-give-access) giveAccessAppFLATPAK "$@" ;;
     flatpak-clean) cleanSystemFLATPAK ;;
     flatpak-update) updateFLATPAK ;;
     flatpak-installed) installedFLATPAK "$@" ;;
