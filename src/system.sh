@@ -570,7 +570,7 @@ function installedFLATPAK() {
         flatpak list --all | awk '{if (NR!=1) {print $1}}'
         return $?
     } || {
-        flatpak list --all | awk '{if (NR!=1) {print $1}}' | grep -i "^$nameApp"
+        flatpak list --all | awk '{if (NR!=1) {print $1}}' | grep -i "^$1"
         return $?
     }
 }
