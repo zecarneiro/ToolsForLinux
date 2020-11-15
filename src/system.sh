@@ -637,7 +637,7 @@ function appFLATPAK() {
 
     case "$operation" in
         i)
-            cmd="flatpak install %APP%"
+            cmd="flatpak install --system --user %APP%"
             cmd="${cmd} || torsocks ${cmd}"
             errorAPP="INSTALL FAIL APP: "
         ;;
