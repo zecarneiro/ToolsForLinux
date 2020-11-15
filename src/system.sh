@@ -507,8 +507,6 @@ function giveAccessAppFLATPAK() {
     local cmd="sudo flatpak override ${appName}"
     local -i count=0
 
-    echo "${typeAcces[@]}"
-
     validateDependencies flatpak
     exitError $?
 
