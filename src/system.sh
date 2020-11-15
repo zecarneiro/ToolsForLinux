@@ -503,9 +503,11 @@ function appSNAP() {
 function giveAccessAppFLATPAK() {
     local namePrint="Give Access for FLATPAK app"
     local appName="$1"; shift
-    local typeAccess=($2)
+    local typeAccess=($@)
     local cmd="sudo flatpak override ${appName}"
     local -i count=0
+
+    echo "${typeAcces[@]}"
 
     validateDependencies flatpak
     exitError $?
@@ -702,7 +704,6 @@ function appFLATPAK() {
                         errorAPP="$errorAPP $app"
                         countFail=$((countFail+1))
                     } || {
-                        cleanSystemFLATPAK
                         showMessages "$app uninstalled" 1
                     }
                 } || showMessages "APP $ppa not installed!!!" 2
