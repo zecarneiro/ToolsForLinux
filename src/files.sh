@@ -161,7 +161,7 @@ function desktopFile() {
     local desktopData="
         [Desktop Entry]\n
         Name=%NAME%\n
-        Exec='%CMD_TO_EXEC%'\n
+        Exec=%CMD_TO_EXEC%\n
         Icon='%ICON_ONLY_PNG%'\n
         Terminal=%TERMINAL%\n
         Type=Application\n
